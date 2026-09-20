@@ -99,7 +99,7 @@ export async function PATCH(
 
     const { name, email, role, password } = parsed.data;
 
-    if (role === 'owner') {
+    if ((role as string | undefined) === 'owner') {
       return NextResponse.json(
         { error: 'You cannot assign the owner role to staff' },
         { status: 400 },

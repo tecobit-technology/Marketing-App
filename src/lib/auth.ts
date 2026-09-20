@@ -209,7 +209,7 @@ export const authOptions: NextAuthOptions = {
         token.platformRole = user.platformRole;
         token.passwordChangedAt = user.passwordChangedAt;
 
-        token.rememberMe = user.rememberMe;
+        token.rememberMe = (user as { rememberMe?: boolean }).rememberMe;
       }
 
       if (
