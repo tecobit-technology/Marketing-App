@@ -3,7 +3,12 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/db';
-import { QueueEntry, Patient, Appointment } from '@/lib/models';
+import {
+  QueueEntry,
+  Patient,
+  Appointment,
+  type QueueEntryDoc,
+} from '@/lib/models';
 
 const queueSchema = z.object({
     patientId: z.string().min(1, 'Patient is required'),
@@ -162,7 +167,7 @@ export async function POST(request: Request) {
             appointmentId: appointmentId || null,
             status: 'waiting',
             joinedAt: new Date(),
-        });
+        } as unknown as QueueEntryDoc);
 
         const populatedEntry =
             await QueueEntry.findById(entry._id)

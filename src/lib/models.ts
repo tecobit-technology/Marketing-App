@@ -149,6 +149,155 @@ const treatmentPlanSchema = new Schema(
   },
   { timestamps: true },
 );
+
+const invoiceItemSchema = new Schema(
+  {
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    unitPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'pending', 'paid', 'overdue'],
+      default: 'pending',
+    },
+    notes: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+  },
+  { _id: true },
+);
+
+const invoiceSchema = new Schema(
+  {
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Patient',
+      required: true,
+      index: true,
+    },
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Clinic',
+      required: true,
+      index: true,
+    },
+    invoiceNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    issueDate: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    items: [invoiceItemSchema],
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'pending', 'paid', 'overdue'],
+      default: 'pending',
+      index: true,
+    },
+    notes: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+  },
+  { timestamps: true },
+);
+
+const paymentSchema = new Schema(
+  {
+    invoiceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Invoice',
+      required: true,
+      index: true,
+    },
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Patient',
+      required: true,
+      index: true,
+    },
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Clinic',
+      required: true,
+      index: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    paymentDate: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'card', 'bank', 'other'],
+      required: true,
+    },
+    notes: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    receiptNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+  },
+  { timestamps: true },
+);
+
 const clinicalNoteSchema = new Schema(
   {
     patientId: {
@@ -186,8 +335,36 @@ const clinicalNoteSchema = new Schema(
   { timestamps: true },
 );
 
+const counterSchema = new Schema(
+  {
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Clinic',
+      required: true,
+    },
+    key: {
+      type: String,
+      required: true,
+    },
+    seq: {
+      type: Number,
+      required: true,
+      default: 1000,
+    },
+  },
+  { timestamps: true },
+);
+
+counterSchema.index({ clinicId: 1, key: 1 }, { unique: true });
+
 const auditLogSchema = new Schema(
   {
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Clinic',
+      required: true,
+      index: true,
+    },
     actorId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     action: { type: String, required: true },
     target: { type: String, default: '' },
@@ -238,7 +415,11 @@ type AppointmentDoc = InferSchemaType<typeof appointmentSchema>;
 type ClinicDoc = InferSchemaType<typeof clinicSchema>;
 type EncounterDoc = InferSchemaType<typeof encounterSchema>;
 type TreatmentPlanDoc = InferSchemaType<typeof treatmentPlanSchema>;
+type InvoiceItemDoc = InferSchemaType<typeof invoiceItemSchema>;
+type InvoiceDoc = InferSchemaType<typeof invoiceSchema>;
+type PaymentDoc = InferSchemaType<typeof paymentSchema>;
 type ClinicalNoteDoc = InferSchemaType<typeof clinicalNoteSchema>;
+type CounterDoc = InferSchemaType<typeof counterSchema>;
 type QueueEntryDoc = InferSchemaType<typeof queueEntrySchema> & {
   calledAt?: Date | null;
   completedAt?: Date | null;
@@ -260,6 +441,9 @@ export const Appointment = model<AppointmentDoc>('Appointment', appointmentSchem
 export const QueueEntry = model<QueueEntryDoc>('QueueEntry', queueEntrySchema);
 export const Encounter = model<EncounterDoc>('Encounter', encounterSchema);
 export const TreatmentPlan = model<TreatmentPlanDoc>('TreatmentPlan', treatmentPlanSchema);
+export const Invoice = model<InvoiceDoc>('Invoice', invoiceSchema);
+export const Payment = model<PaymentDoc>('Payment', paymentSchema);
+export const Counter = model<CounterDoc>('Counter', counterSchema);
 export const ClinicalNote = model<ClinicalNoteDoc>('ClinicalNote', clinicalNoteSchema);
 export const AuditLog = model<AuditLogDoc>('AuditLog', auditLogSchema);
 export const ContactMessage = model<ContactMessageDoc>('ContactMessage', contactMessageSchema);
@@ -276,6 +460,10 @@ export type {
   ClinicDoc,
   EncounterDoc,
   TreatmentPlanDoc,
+  InvoiceItemDoc,
+  InvoiceDoc,
+  PaymentDoc,
+  CounterDoc,
   ClinicalNoteDoc,
   QueueEntryDoc,
   AuditLogDoc,

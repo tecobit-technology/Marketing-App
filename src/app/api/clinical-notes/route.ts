@@ -23,7 +23,7 @@ export async function GET() {
             );
         }
 
-        await connectDB();
+        await connectToDatabase();
 
         const notes = await ClinicalNote.find({
             clinicId: session.user.clinicId,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             );
         }
 
-        await connectDB();
+        await connectToDatabase();
 
         const body = await request.json();
         const parsed = clinicalNoteSchema.safeParse(body);
