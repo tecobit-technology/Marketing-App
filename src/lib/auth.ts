@@ -1,9 +1,10 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 
 import { connectToDatabase } from "./db";
-import { Patient, User, PlatformAdmin } from "@/lib/models";
+import { Patient, User } from "@/lib/models";
 import { checkRateLimit } from "./rate-limit";
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -26,6 +27,9 @@ export const authOptions: NextAuthOptions = {
   },
 
   providers: [
+    // =========================================================
+    // CREDENTIALS LOGIN
+    // =========================================================
     CredentialsProvider({
       name: "Credentials",
 
@@ -89,9 +93,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         await connectToDatabase();
-        // --------------------------------------------------
+
+        // =====================================================
         // PLATFORM ADMIN
-        // --------------------------------------------------
+        // =====================================================
         if (loginType === "platform_admin") {
           const platformAdminEmail =
             process.env.PLATFORM_ADMIN_EMAIL?.toLowerCase().trim();
@@ -111,25 +116,25 @@ export const authOptions: NextAuthOptions = {
             name: "Platform Admin",
 
             role: "platform_admin",
-
             platformRole: "super_admin",
-
             clinicId: null,
 
             rememberMe,
-
             passwordChangedAt: null,
           };
         }
 
-        // --------------------------------------------------
-        // CLINIC STAFF
-        // --------------------------------------------------
-        const user = await User.findOne({
-          email,
-        }).select("+passwordHash");
+        // =====================================================
+        // CLINIC STAFF / NORMAL USER
+        // =====================================================
+        const user = await User.findOne({ email }).select("+passwordHash");
 
         if (user) {
+          // Google-only accounts do not have a password.
+          if (!user.passwordHash) {
+            return null;
+          }
+
           const isValid = await bcrypt.compare(
             credentials.password,
             user.passwordHash,
@@ -148,7 +153,9 @@ export const authOptions: NextAuthOptions = {
 
             platformRole: undefined as string | undefined,
 
-            clinicId: user.clinicId ? user.clinicId.toString() : null,
+            clinicId: user.clinicId
+              ? user.clinicId.toString()
+              : null,
 
             rememberMe,
 
@@ -158,9 +165,9 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // --------------------------------------------------
+        // =====================================================
         // PATIENT
-        // --------------------------------------------------
+        // =====================================================
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const patient: any = await Patient.findOne({
           email,
@@ -185,7 +192,9 @@ export const authOptions: NextAuthOptions = {
 
             platformRole: undefined as string | undefined,
 
-            clinicId: patient.clinicId ? patient.clinicId.toString() : null,
+            clinicId: patient.clinicId
+              ? patient.clinicId.toString()
+              : null,
 
             rememberMe,
 
@@ -198,24 +207,169 @@ export const authOptions: NextAuthOptions = {
         return null;
       },
     }),
+
+    // =========================================================
+    // GOOGLE LOGIN
+    // =========================================================
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.clinicId = user.clinicId;
-        token.platformRole = user.platformRole;
-        token.passwordChangedAt = user.passwordChangedAt;
-
-        token.rememberMe = (user as { rememberMe?: boolean }).rememberMe;
+    // =========================================================
+    // SIGN IN
+    // =========================================================
+    async signIn({ user, account, profile }) {
+      // Credentials login
+      if (account?.provider !== "google") {
+        return true;
       }
 
+      const email = user.email?.toLowerCase().trim();
+
+      if (!email) {
+        return false;
+      }
+
+      // Only allow verified Google email addresses.
+      const googleProfile = profile as {
+        email_verified?: boolean;
+      };
+
+      if (googleProfile.email_verified !== true) {
+        return false;
+      }
+
+      await connectToDatabase();
+
+      // -------------------------------------------------------
+      // Check whether this email already has an AThor account.
+      // -------------------------------------------------------
+      const existingUser = await User.findOne({ email });
+
+      if (existingUser) {
+        // If this account is already linked to a different
+        // Google account, do not silently replace the link.
+        if (
+          existingUser.googleId &&
+          existingUser.googleId !== account.providerAccountId
+        ) {
+          return false;
+        }
+
+        let changed = false;
+
+        // Link Google to existing account.
+        if (!existingUser.googleId) {
+          existingUser.googleId = account.providerAccountId;
+          changed = true;
+        }
+
+        // Google has verified the email.
+        if (!existingUser.emailVerified) {
+          existingUser.emailVerified = new Date();
+          changed = true;
+        }
+
+        if (changed) {
+          await existingUser.save();
+        }
+
+        return true;
+      }
+
+      // -------------------------------------------------------
+      // New Google user
+      // -------------------------------------------------------
+      await User.create({
+        name: user.name || "AThor User",
+        email,
+
+        // Google users don't have a password.
+        passwordHash: null,
+
+        role: "owner",
+
+        // MVP does not create a clinic.
+        clinicId: null,
+
+        googleId: account.providerAccountId,
+
+        emailVerified: new Date(),
+
+        passwordChangedAt: null,
+      });
+
+      return true;
+    },
+
+    // =========================================================
+    // JWT
+    // =========================================================
+    async jwt({ token, user, account }) {
+      // -------------------------------------------------------
+      // Credentials / normal login
+      // -------------------------------------------------------
+      if (user) {
+        token.id = user.id;
+
+        token.role = user.role;
+
+        token.clinicId = user.clinicId ?? null;
+
+        token.platformRole = user.platformRole;
+
+        token.passwordChangedAt = user.passwordChangedAt;
+
+        token.rememberMe = (
+          user as {
+            rememberMe?: boolean;
+          }
+        ).rememberMe;
+      }
+
+      // -------------------------------------------------------
+      // Google login
+      //
+      // OAuth's user object does not contain our custom
+      // database fields, so load the real User document.
+      // -------------------------------------------------------
+      if (account?.provider === "google" && user?.email) {
+        await connectToDatabase();
+
+        const email = user.email.toLowerCase().trim();
+
+        const dbUser = await User.findOne({ email });
+
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+
+          token.role = dbUser.role;
+
+          token.clinicId = dbUser.clinicId
+            ? dbUser.clinicId.toString()
+            : null;
+
+          token.platformRole = undefined;
+
+          token.passwordChangedAt = dbUser.passwordChangedAt
+            ? dbUser.passwordChangedAt.getTime()
+            : null;
+
+          token.rememberMe = false;
+        }
+      }
+
+      // -------------------------------------------------------
+      // Password change invalidates older sessions.
+      // -------------------------------------------------------
       if (
         token.passwordChangedAt &&
         typeof token.iat === "number" &&
-        token.iat * 1000 < (token.passwordChangedAt as number)
+        token.iat * 1000 <
+          (token.passwordChangedAt as number)
       ) {
         return {};
       }
@@ -223,13 +377,17 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
+    // =========================================================
+    // SESSION
+    // =========================================================
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
 
         session.user.role = token.role as string;
 
-        session.user.clinicId = token.clinicId as string | null;
+        session.user.clinicId =
+          token.clinicId as string | null;
 
         session.user.platformRole = token.platformRole as
           | "super_admin"

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import { connectToDatabase } from "@/lib/db";
-import { Clinic, User } from "@/lib/models";
+import { User, SignupOtp } from "@/lib/models";
 import { strongPassword } from "@/lib/validations";
+import { sendSignupOtpEmail } from "@/lib/email";
 
 const registerSchema = z
   .object({
@@ -13,12 +15,6 @@ const registerSchema = z
       .trim()
       .min(2, "Name must be at least 2 characters")
       .max(100, "Name is too long"),
-
-    clinicName: z
-      .string()
-      .trim()
-      .min(2, "Clinic name must be at least 2 characters")
-      .max(150, "Clinic name is too long"),
 
     email: z
       .string()
@@ -34,6 +30,17 @@ const registerSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+function generateOtp() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
+function hashOtp(otp: string) {
+  return crypto
+    .createHash("sha256")
+    .update(otp)
+    .digest("hex");
+}
 
 export async function POST(request: Request) {
   try {
@@ -54,83 +61,79 @@ export async function POST(request: Request) {
 
     const {
       name,
-      clinicName,
       email,
       password,
     } = parsed.data;
 
     await connectToDatabase();
 
-    // -----------------------------------------------
-    // Check if email already exists
-    // -----------------------------------------------
-
+    // Existing verified account
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return NextResponse.json(
         {
-          error: "An account with this email already exists",
+          error: "An account with this email already exists.",
         },
         { status: 409 },
       );
     }
 
-    // -----------------------------------------------
-    // Hash password
-    // -----------------------------------------------
-
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // -----------------------------------------------
-    // Create clinic
-    // -----------------------------------------------
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
 
-    const clinic = await Clinic.create({
-      name: clinicName,
+    const expiresAt = new Date(
+      Date.now() + 10 * 60 * 1000,
+    );
+
+    // Remove previous pending signup
+    await SignupOtp.deleteMany({ email });
+
+    await SignupOtp.create({
+      name,
+      email,
+      passwordHash,
+      otpHash,
+      expiresAt,
+      attempts: 0,
     });
 
     try {
-      // ---------------------------------------------
-      // Create clinic owner
-      // ---------------------------------------------
+      await sendSignupOtpEmail(email, otp);
+    } catch (emailError) {
+      console.error(
+        "SIGNUP_OTP_EMAIL_ERROR:",
+        emailError,
+      );
 
-      const user = await User.create({
-        name,
-        email,
-        passwordHash,
-        role: "owner",
-        clinicId: clinic._id,
-      });
+      await SignupOtp.deleteMany({ email });
 
       return NextResponse.json(
         {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          clinicId: clinic._id.toString(),
+          error:
+            "Unable to send verification email. Please try again.",
         },
-        { status: 201 },
+        { status: 500 },
       );
-    } catch (userError) {
-      // ---------------------------------------------
-      // Roll back clinic if user creation fails
-      // ---------------------------------------------
-
-      await Clinic.deleteOne({
-        _id: clinic._id,
-      });
-
-      throw userError;
     }
+
+    return NextResponse.json(
+      {
+        message:
+          "Verification code sent to your email.",
+        email,
+      },
+      { status: 200 },
+    );
   } catch (error) {
-    console.error("CLINIC_REGISTER_ERROR:", error);
+    console.error("REGISTER_ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          "Unable to create clinic account. Please try again.",
+          "Unable to start registration. Please try again.",
       },
       { status: 500 },
     );

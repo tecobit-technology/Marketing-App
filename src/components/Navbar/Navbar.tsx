@@ -2,6 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
+import {
+  ChevronDown,
+  LogOut,
+  UserCircle,
+} from 'lucide-react';
+
 import { ChevronDownIcon } from '@/components/ui/icons';
 
 const products = [
@@ -23,7 +30,13 @@ const resources = [
   { label: 'Help Center', href: '/help' },
 ];
 
-function Dropdown({ label, items }: { label: string; items: { label: string; href: string }[] }) {
+function Dropdown({
+  label,
+  items,
+}: {
+  label: string;
+  items: { label: string; href: string }[];
+}) {
   return (
     <div className="group relative">
       <button
@@ -42,11 +55,135 @@ function Dropdown({ label, items }: { label: string; items: { label: string; hre
               href={item.href}
               className="block rounded-md px-3 py-2 transition-colors hover:bg-brand-tint"
             >
-              <span className="text-sm font-medium text-text-heading">{item.label}</span>
+              <span className="text-sm font-medium text-text-heading">
+                {item.label}
+              </span>
             </Link>
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function UserProfile() {
+  const { data: session, status } = useSession();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  if (status === 'loading') {
+    return (
+      <div className="hidden h-10 w-28 animate-pulse rounded-lg bg-neutral-100 md:block" />
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <>
+        <Link
+          href="/login"
+          className="hidden rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-heading transition-colors hover:bg-neutral-50 md:inline-flex"
+        >
+          Login
+        </Link>
+
+        <Link
+          href="/signup"
+          className="hidden rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover md:inline-flex"
+        >
+          Sign Up
+        </Link>
+      </>
+    );
+  }
+
+  const displayName = session.user.name || 'User';
+  const email = session.user.email || '';
+  const initial = (
+    displayName.charAt(0) ||
+    email.charAt(0) ||
+    'U'
+  ).toUpperCase();
+
+  return (
+    <div className="relative hidden md:block">
+      <button
+        type="button"
+        onClick={() => setProfileOpen((open) => !open)}
+        className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-neutral-50"
+        aria-expanded={profileOpen}
+        aria-haspopup="menu"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+          {initial}
+        </div>
+
+        <div className="max-w-[130px] text-left">
+          <p className="truncate text-sm font-semibold text-text-heading">
+            {displayName}
+          </p>
+
+          <p className="truncate text-xs text-text-body">
+            {email}
+          </p>
+        </div>
+
+        <ChevronDown
+          className={`h-4 w-4 text-text-body transition-transform ${
+            profileOpen ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {profileOpen && (
+        <div
+          className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-xl border border-border-default bg-white shadow-lg"
+          role="menu"
+        >
+          <div className="border-b border-neutral-100 px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+                {initial}
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-text-heading">
+                  {displayName}
+                </p>
+
+                <p className="truncate text-xs text-text-body">
+                  {email}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-2">
+            <Link
+              href="/demo"
+              onClick={() => setProfileOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-text-body transition-colors hover:bg-neutral-100"
+              role="menuitem"
+            >
+              <UserCircle className="h-4 w-4" />
+              My Account
+            </Link>
+
+            <button
+              type="button"
+              onClick={() =>
+                signOut({
+                  callbackUrl: '/',
+                })
+              }
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+              role="menuitem"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -57,43 +194,63 @@ export default function Navbar() {
   const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
 
+  const { data: session, status } = useSession();
+
+  const displayName = session?.user?.name || 'User';
+  const email = session?.user?.email || '';
+  const initial = (
+    displayName.charAt(0) ||
+    email.charAt(0) ||
+    'U'
+  ).toUpperCase();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border-default bg-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
-        <Link href="/" className="text-xl font-bold text-brand-primary">mysaas</Link>
+        <Link
+          href="/"
+          className="text-xl font-bold text-brand-primary"
+        >
+          mysaas
+        </Link>
 
         <nav className="hidden items-center gap-[31px] text-sm text-text-heading md:flex">
           <Dropdown label="Product" items={products} />
+
           <Dropdown label="Solutions" items={solutions} />
-          <Link href="/product/pricing" className="transition-colors hover:text-brand-primary">
+
+          <Link
+            href="/product/pricing"
+            className="transition-colors hover:text-brand-primary"
+          >
             Pricing
           </Link>
+
           <Dropdown label="Resources" items={resources} />
-          <Link href="/company" className="transition-colors hover:text-brand-primary">
+
+          <Link
+            href="/company"
+            className="transition-colors hover:text-brand-primary"
+          >
             Company
           </Link>
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="hidden rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-heading transition-colors hover:bg-neutral-50 md:inline-flex"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="hidden rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover md:inline-flex"
-          >
-            Sign Up
-          </Link>
+          <UserProfile />
 
           <button
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-text-heading transition-colors hover:bg-neutral-100 md:hidden"
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={
+              mobileMenuOpen
+                ? 'Close navigation menu'
+                : 'Open navigation menu'
+            }
             aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen((open) => !open)}
+            onClick={() =>
+              setMobileMenuOpen((open) => !open)
+            }
           >
             {mobileMenuOpen ? (
               <span aria-hidden="true">✕</span>
@@ -111,11 +268,16 @@ export default function Navbar() {
               <button
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                onClick={() => setMobileProductsOpen((open) => !open)}
+                onClick={() =>
+                  setMobileProductsOpen((open) => !open)
+                }
               >
                 <span>Product</span>
-                <span className="text-xs">{mobileProductsOpen ? '−' : '+'}</span>
+                <span className="text-xs">
+                  {mobileProductsOpen ? '−' : '+'}
+                </span>
               </button>
+
               {mobileProductsOpen && (
                 <div className="space-y-1 rounded-xl bg-white p-2">
                   {products.map((product) => (
@@ -135,11 +297,16 @@ export default function Navbar() {
               <button
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                onClick={() => setMobileSolutionsOpen((open) => !open)}
+                onClick={() =>
+                  setMobileSolutionsOpen((open) => !open)
+                }
               >
                 <span>Solutions</span>
-                <span className="text-xs">{mobileSolutionsOpen ? '−' : '+'}</span>
+                <span className="text-xs">
+                  {mobileSolutionsOpen ? '−' : '+'}
+                </span>
               </button>
+
               {mobileSolutionsOpen && (
                 <div className="space-y-1 rounded-xl bg-white p-2">
                   {solutions.map((solution) => (
@@ -159,11 +326,16 @@ export default function Navbar() {
               <button
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                onClick={() => setMobileResourcesOpen((open) => !open)}
+                onClick={() =>
+                  setMobileResourcesOpen((open) => !open)
+                }
               >
                 <span>Resources</span>
-                <span className="text-xs">{mobileResourcesOpen ? '−' : '+'}</span>
+                <span className="text-xs">
+                  {mobileResourcesOpen ? '−' : '+'}
+                </span>
               </button>
+
               {mobileResourcesOpen && (
                 <div className="space-y-1 rounded-xl bg-white p-2">
                   {resources.map((resource) => (
@@ -186,6 +358,7 @@ export default function Navbar() {
               >
                 Pricing
               </Link>
+
               <Link
                 href="/company"
                 className="block rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
@@ -194,19 +367,66 @@ export default function Navbar() {
               </Link>
             </div>
 
-            <div className="flex flex-col gap-3 pt-4">
-              <Link
-                href="/login"
-                className="rounded-lg border border-border-default px-4 py-3 text-sm font-medium text-text-heading text-center transition-colors hover:bg-neutral-50"
-              >
-                Login
-              </Link>
-              <Link
-href="/signup"
-                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover"
-              >
-                Sign Up
-              </Link>
+            <div className="border-t border-neutral-200 pt-4">
+              {status === 'loading' ? (
+                <div className="h-12 animate-pulse rounded-xl bg-neutral-100" />
+              ) : session?.user ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-4 py-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+                      {initial}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-text-heading">
+                        {displayName}
+                      </p>
+
+                      <p className="truncate text-xs text-text-body">
+                        {email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/demo"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                  >
+                    <UserCircle className="h-4 w-4" />
+                    My Account
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      signOut({
+                        callbackUrl: '/',
+                      })
+                    }
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/login"
+                    className="rounded-lg border border-border-default px-4 py-3 text-center text-sm font-medium text-text-heading transition-colors hover:bg-neutral-50"
+                  >
+                    Login
+                  </Link>
+
+                  <Link
+                    href="/signup"
+                    className="rounded-lg bg-brand-primary px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

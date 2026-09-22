@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import {
+  Building2,
+  LockKeyhole,
+  Mail,
+  User,
+} from "lucide-react";
 import { z } from "zod";
 
 const signupSchema = z
@@ -120,6 +126,34 @@ function CheckIcon() {
   );
 }
 
+function GoogleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        fill="#4285F4"
+        d="M21.35 12.23c0-.79-.07-1.55-.2-2.28H12v4.32h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.43Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 21.6c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.6Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.54 13.69A5.84 5.84 0 0 1 6.23 12c0-.59.1-1.16.31-1.69V7.78H3.3A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.05 4.22l3.24-2.53Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6.28c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.36 14.63 2.4 12 2.4a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53C7.31 8 9.46 6.28 12 6.28Z"
+      />
+    </svg>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
 
@@ -137,6 +171,7 @@ export default function SignupPage() {
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -233,6 +268,23 @@ export default function SignupPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleGoogleSignup() {
+    setError("");
+    setIsGoogleLoading(true);
+
+    try {
+      await signIn("google", {
+        callbackUrl: "/demo",
+      });
+    } catch (error) {
+      console.error("GOOGLE_SIGNUP_ERROR:", error);
+      setError(
+        "Unable to continue with Google. Please try again.",
+      );
+      setIsGoogleLoading(false);
     }
   }
 
@@ -362,17 +414,26 @@ export default function SignupPage() {
                     Owner Full Name
                   </label>
 
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Dr. Jane Smith"
-                    autoComplete="name"
-                    disabled={isSubmitting}
-                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
+                  <div className="relative">
+                    <User
+                      size={18}
+                      strokeWidth={1.8}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                      aria-hidden="true"
+                    />
+
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="Dr. Jane Smith"
+                      autoComplete="name"
+                      disabled={isSubmitting || isGoogleLoading}
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
                 </div>
 
                 {/* =================================================
@@ -387,17 +448,26 @@ export default function SignupPage() {
                     Clinic Name
                   </label>
 
-                  <input
-                    id="clinicName"
-                    name="clinicName"
-                    type="text"
-                    value={form.clinicName}
-                    onChange={handleChange}
-                    placeholder="Smile Dental Clinic"
-                    autoComplete="organization"
-                    disabled={isSubmitting}
-                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
+                  <div className="relative">
+                    <Building2
+                      size={18}
+                      strokeWidth={1.8}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                      aria-hidden="true"
+                    />
+
+                    <input
+                      id="clinicName"
+                      name="clinicName"
+                      type="text"
+                      value={form.clinicName}
+                      onChange={handleChange}
+                      placeholder="Smile Dental Clinic"
+                      autoComplete="organization"
+                      disabled={isSubmitting || isGoogleLoading}
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
                 </div>
 
                 {/* =================================================
@@ -412,17 +482,26 @@ export default function SignupPage() {
                     Work Email
                   </label>
 
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="owner@yourclinic.com"
-                    autoComplete="email"
-                    disabled={isSubmitting}
-                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
+                  <div className="relative">
+                    <Mail
+                      size={18}
+                      strokeWidth={1.8}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                      aria-hidden="true"
+                    />
+
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="owner@yourclinic.com"
+                      autoComplete="email"
+                      disabled={isSubmitting || isGoogleLoading}
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
                 </div>
 
                 {/* =================================================
@@ -438,6 +517,13 @@ export default function SignupPage() {
                   </label>
 
                   <div className="relative">
+                    <LockKeyhole
+                      size={18}
+                      strokeWidth={1.8}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                      aria-hidden="true"
+                    />
+
                     <input
                       id="password"
                       name="password"
@@ -450,8 +536,8 @@ export default function SignupPage() {
                       onChange={handleChange}
                       placeholder="Create a strong password"
                       autoComplete="new-password"
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmitting || isGoogleLoading}
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
                     />
 
                     <button
@@ -461,7 +547,10 @@ export default function SignupPage() {
                           (prev) => !prev,
                         )
                       }
-                      disabled={isSubmitting}
+                      disabled={
+                        isSubmitting ||
+                        isGoogleLoading
+                      }
                       aria-label={
                         showPassword
                           ? "Hide password"
@@ -469,7 +558,9 @@ export default function SignupPage() {
                       }
                       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <EyeIcon open={showPassword} />
+                      <EyeIcon
+                        open={showPassword}
+                      />
                     </button>
                   </div>
 
@@ -492,6 +583,13 @@ export default function SignupPage() {
                   </label>
 
                   <div className="relative">
+                    <LockKeyhole
+                      size={18}
+                      strokeWidth={1.8}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                      aria-hidden="true"
+                    />
+
                     <input
                       id="confirmPassword"
                       name="confirmPassword"
@@ -504,8 +602,8 @@ export default function SignupPage() {
                       onChange={handleChange}
                       placeholder="Confirm your password"
                       autoComplete="new-password"
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSubmitting || isGoogleLoading}
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
                     />
 
                     <button
@@ -515,7 +613,10 @@ export default function SignupPage() {
                           (prev) => !prev,
                         )
                       }
-                      disabled={isSubmitting}
+                      disabled={
+                        isSubmitting ||
+                        isGoogleLoading
+                      }
                       aria-label={
                         showConfirmPassword
                           ? "Hide confirm password"
@@ -524,7 +625,9 @@ export default function SignupPage() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <EyeIcon
-                        open={showConfirmPassword}
+                        open={
+                          showConfirmPassword
+                        }
                       />
                     </button>
                   </div>
@@ -549,7 +652,10 @@ export default function SignupPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    isGoogleLoading
+                  }
                   className="w-full rounded-xl bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting
@@ -557,6 +663,36 @@ export default function SignupPage() {
                     : "Start Free Trial"}
                 </button>
               </form>
+
+              {/* =================================================
+                  GOOGLE SIGN UP
+              ================================================= */}
+
+              <div className="my-6 flex items-center gap-4">
+                <div className="h-px flex-1 bg-neutral-200" />
+
+                <span className="text-xs font-medium text-text-muted">
+                  OR
+                </span>
+
+                <div className="h-px flex-1 bg-neutral-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={
+                  isSubmitting ||
+                  isGoogleLoading
+                }
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white px-6 py-3.5 text-sm font-semibold text-text-heading transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <GoogleIcon />
+
+                {isGoogleLoading
+                  ? "Connecting to Google..."
+                  : "Continue with Google"}
+              </button>
 
               <p className="mt-5 text-center text-xs text-text-muted">
                 Already have an account?{" "}

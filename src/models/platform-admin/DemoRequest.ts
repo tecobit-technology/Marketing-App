@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IDemoRequest extends Document {
+  userId: mongoose.Types.ObjectId;
+
   name: string;
   email: string;
   phone: string;
@@ -27,6 +29,14 @@ export interface IDemoRequest extends Document {
 
 const demoRequestSchema = new Schema<IDemoRequest>(
   {
+    // Authenticated customer who submitted this request
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: true,
