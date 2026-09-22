@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Users,
@@ -60,7 +61,25 @@ const NAV_ITEMS = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const userName = session?.user?.name || "Admin User";
+  const userEmail = session?.user?.email || "admin@clinic.com";
+
+  const initials = useMemo(() => {
+    const name = userName.trim();
+
+    if (!name) return "A";
+
+    const parts = name.split(/\s+/).filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }, [userName]);
 
   return (
     <>
@@ -130,16 +149,16 @@ export default function AdminSidebar() {
         <div className="border-t border-border-default bg-white p-4 md:bg-transparent">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-primary text-sm font-semibold text-white shadow-sm opacity-90">
-              JS
+              {status === "loading" ? "..." : initials}
             </div>
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text-heading">
-                Dr. Sharma
+                {status === "loading" ? "Loading..." : userName}
               </p>
 
               <p className="truncate text-[11px] text-text-muted">
-                admin@clinic.com
+                {status === "loading" ? "" : userEmail}
               </p>
             </div>
           </div>

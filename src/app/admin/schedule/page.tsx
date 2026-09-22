@@ -2,6 +2,18 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarCheck,
+  Check,
+  CircleUserRound,
+  DoorOpen,
+  Loader2,
+  LogIn,
+  X,
+} from "lucide-react";
+
 import PageHeader from "@/components/admin/shared/PageHeader";
 import StatusBadge from "@/components/admin/shared/StatusBadge";
 
@@ -79,8 +91,13 @@ function getDuration(
     return "—";
   }
 
-  const currentTime = new Date(currentAppointment.dateTime).getTime();
-  const nextTime = new Date(nextAppointment.dateTime).getTime();
+  const currentTime = new Date(
+    currentAppointment.dateTime,
+  ).getTime();
+
+  const nextTime = new Date(
+    nextAppointment.dateTime,
+  ).getTime();
 
   const differenceInMinutes = Math.round(
     (nextTime - currentTime) / (1000 * 60),
@@ -101,6 +118,10 @@ export default function SchedulePage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Keeps track of which appointment is currently being updated.
+  const [updatingAppointmentId, setUpdatingAppointmentId] =
+    useState<string | null>(null);
 
   async function fetchAppointments() {
     try {
@@ -135,27 +156,64 @@ export default function SchedulePage() {
     fetchAppointments();
   }, []);
 
-  const filteredAppointments = useMemo(() => {
-    const selectedYear = selectedDate.getFullYear();
-    const selectedMonth = selectedDate.getMonth();
-    const selectedDay = selectedDate.getDate();
+  /*
+   * Update appointment status.
+   *
+   * This connects the Schedule UI to:
+   *
+   * PATCH /api/appointments/[id]
+   */
+  async function updateAppointmentStatus(
+    appointmentId: string,
+    status:
+      | "checked-in"
+      | "in-room"
+      | "completed"
+      | "cancelled"
+      | "no-show",
+  ) {
+    try {
+      setUpdatingAppointmentId(appointmentId);
+      setError("");
 
-    return appointments
-      .filter((appointment) => {
-        const appointmentDate = new Date(appointment.dateTime);
-
-        return (
-          appointmentDate.getFullYear() === selectedYear &&
-          appointmentDate.getMonth() === selectedMonth &&
-          appointmentDate.getDate() === selectedDay
-        );
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.dateTime).getTime() -
-          new Date(b.dateTime).getTime(),
+      const response = await fetch(
+        `/api/appointments/${appointmentId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
+        },
       );
-  }, [appointments, selectedDate]);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Failed to update appointment",
+        );
+      }
+
+      // Refresh Schedule with the new status.
+      await fetchAppointments();
+    } catch (error) {
+      console.error(
+        "Update appointment status error:",
+        error,
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update appointment",
+      );
+    } finally {
+      setUpdatingAppointmentId(null);
+    }
+  }
 
   function goToPreviousDay() {
     setSelectedDate((current) => {
@@ -176,6 +234,30 @@ export default function SchedulePage() {
   function goToToday() {
     setSelectedDate(new Date());
   }
+
+  const filteredAppointments = useMemo(() => {
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = selectedDate.getMonth();
+    const selectedDay = selectedDate.getDate();
+
+    return appointments
+      .filter((appointment) => {
+        const appointmentDate = new Date(
+          appointment.dateTime,
+        );
+
+        return (
+          appointmentDate.getFullYear() === selectedYear &&
+          appointmentDate.getMonth() === selectedMonth &&
+          appointmentDate.getDate() === selectedDay
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.dateTime).getTime() -
+          new Date(b.dateTime).getTime(),
+      );
+  }, [appointments, selectedDate]);
 
   return (
     <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)]">
@@ -198,18 +280,7 @@ export default function SchedulePage() {
               className="text-text-muted hover:text-text-heading p-1"
               aria-label="Previous day"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ArrowLeft size={20} />
             </button>
 
             <h3 className="text-lg font-semibold text-text-heading px-2">
@@ -222,18 +293,7 @@ export default function SchedulePage() {
               className="text-text-muted hover:text-text-heading p-1"
               aria-label="Next day"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ArrowRight size={20} />
             </button>
 
             <button
@@ -278,6 +338,11 @@ export default function SchedulePage() {
             </div>
           ) : filteredAppointments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
+              <CalendarCheck
+                size={36}
+                className="text-text-muted mb-3"
+              />
+
               <p className="text-sm font-medium text-text-heading">
                 No appointments
               </p>
@@ -303,67 +368,277 @@ export default function SchedulePage() {
                 appointment.dentistId?.name ||
                 "Not Assigned";
 
+              const isUpdating =
+                updatingAppointmentId === appointment._id;
+
               return (
                 <div
                   key={appointment._id}
-                  className="flex flex-col sm:flex-row gap-4 border border-border-default rounded-lg p-4 hover:border-brand-primary transition-colors cursor-pointer group"
+                  className="border border-border-default rounded-lg p-4 hover:border-brand-primary transition-colors group"
                 >
-                  {/* Time */}
-                  <div className="sm:w-24 shrink-0 border-b sm:border-b-0 sm:border-r border-border-default pb-3 sm:pb-0 sm:pr-4 flex flex-col justify-center">
-                    <span className="text-lg font-bold text-text-heading">
-                      {formatTime(appointmentDate)}
-                    </span>
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Time */}
+                    <div className="lg:w-24 shrink-0 border-b lg:border-b-0 lg:border-r border-border-default pb-3 lg:pb-0 lg:pr-4 flex flex-col justify-center">
+                      <span className="text-lg font-bold text-text-heading">
+                        {formatTime(appointmentDate)}
+                      </span>
 
-                    <span className="text-xs text-text-muted">
-                      {getDuration(
-                        appointment,
-                        nextAppointment,
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Appointment Details */}
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
-                    {/* Patient */}
-                    <div>
-                      <p className="text-sm font-semibold text-brand-primary">
-                        {patientName}
-                      </p>
-
-                      <p className="text-xs text-text-muted">
-                        {appointment.notes || "Appointment"}
-                      </p>
-                    </div>
-
-                    {/* Dentist */}
-                    <div>
-                      <p className="text-sm text-text-body flex items-center gap-2">
-                        <svg
-                          className="text-text-muted"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-
-                        {dentistName}
-                      </p>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex sm:justify-end">
-                      <StatusBadge
-                        status={getStatusLabel(
-                          appointment.status,
+                      <span className="text-xs text-text-muted">
+                        {getDuration(
+                          appointment,
+                          nextAppointment,
                         )}
-                      />
+                      </span>
+                    </div>
+
+                    {/* Appointment Details */}
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                        {/* Patient */}
+                        <div>
+                          <p className="text-sm font-semibold text-brand-primary">
+                            {patientName}
+                          </p>
+
+                          <p className="text-xs text-text-muted mt-1">
+                            {appointment.notes ||
+                              "Appointment"}
+                          </p>
+                        </div>
+
+                        {/* Dentist */}
+                        <div>
+                          <p className="text-sm text-text-body flex items-center gap-2">
+                            <CircleUserRound
+                              size={14}
+                              className="text-text-muted"
+                            />
+
+                            {dentistName}
+                          </p>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex sm:justify-end">
+                          <StatusBadge
+                            status={getStatusLabel(
+                              appointment.status,
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Appointment Actions */}
+                      <div className="mt-4 pt-3 border-t border-border-default flex flex-wrap items-center gap-2">
+                        {/* Scheduled → Checked In */}
+                        {appointment.status ===
+                          "scheduled" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                updateAppointmentStatus(
+                                  appointment._id,
+                                  "checked-in",
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-md bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {isUpdating ? (
+                                <Loader2
+                                  size={15}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <LogIn size={15} />
+                              )}
+
+                              Check In
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                updateAppointmentStatus(
+                                  appointment._id,
+                                  "cancelled",
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              <X size={15} />
+                              Cancel
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                updateAppointmentStatus(
+                                  appointment._id,
+                                  "no-show",
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-md border border-border-default px-3 py-2 text-sm font-medium text-text-body hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              No Show
+                            </button>
+                          </>
+                        )}
+
+                        {/* Checked In → In Room */}
+                        {appointment.status ===
+                          "checked-in" && (
+                          <button
+                            type="button"
+                            disabled={isUpdating}
+                            onClick={() =>
+                              updateAppointmentStatus(
+                                appointment._id,
+                                "in-room",
+                              )
+                            }
+                            className="inline-flex items-center gap-2 rounded-md bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {isUpdating ? (
+                              <Loader2
+                                size={15}
+                                className="animate-spin"
+                              />
+                            ) : (
+                              <DoorOpen size={15} />
+                            )}
+
+                            Move to Room
+                          </button>
+                        )}
+
+                        {/* In Room → Completed */}
+                        {appointment.status === "in-room" && (
+                          <button
+                            type="button"
+                            disabled={isUpdating}
+                            onClick={() =>
+                              updateAppointmentStatus(
+                                appointment._id,
+                                "completed",
+                              )
+                            }
+                            className="inline-flex items-center gap-2 rounded-md bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {isUpdating ? (
+                              <Loader2
+                                size={15}
+                                className="animate-spin"
+                              />
+                            ) : (
+                              <Check size={15} />
+                            )}
+
+                            Complete
+                          </button>
+                        )}
+
+                        {/* Completed */}
+                        {appointment.status === "completed" && (
+                          <div className="inline-flex items-center gap-2 text-sm font-medium text-green-600">
+                            <Check size={16} />
+                            Appointment Completed
+                          </div>
+                        )}
+
+                        {/* Cancelled */}
+                        {appointment.status === "cancelled" && (
+                          <div className="text-sm font-medium text-red-600">
+                            Appointment Cancelled
+                          </div>
+                        )}
+
+                        {/* No Show */}
+                        {appointment.status === "no-show" && (
+                          <div className="text-sm font-medium text-text-muted">
+                            Patient marked as No Show
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Progress */}
+                      {(appointment.status === "scheduled" ||
+                        appointment.status === "checked-in" ||
+                        appointment.status === "in-room" ||
+                        appointment.status === "completed") && (
+                        <div className="mt-4 flex items-center gap-2 text-xs">
+                          <div
+                            className={
+                              appointment.status ===
+                                "scheduled" ||
+                              appointment.status ===
+                                "checked-in" ||
+                              appointment.status ===
+                                "in-room" ||
+                              appointment.status ===
+                                "completed"
+                                ? "font-medium text-brand-primary"
+                                : "text-text-muted"
+                            }
+                          >
+                            Scheduled
+                          </div>
+
+                          <span className="text-text-muted">
+                            →
+                          </span>
+
+                          <div
+                            className={
+                              appointment.status ===
+                                "checked-in" ||
+                              appointment.status ===
+                                "in-room" ||
+                              appointment.status ===
+                                "completed"
+                                ? "font-medium text-brand-primary"
+                                : "text-text-muted"
+                            }
+                          >
+                            Checked In
+                          </div>
+
+                          <span className="text-text-muted">
+                            →
+                          </span>
+
+                          <div
+                            className={
+                              appointment.status ===
+                                "in-room" ||
+                              appointment.status ===
+                                "completed"
+                                ? "font-medium text-brand-primary"
+                                : "text-text-muted"
+                            }
+                          >
+                            In Room
+                          </div>
+
+                          <span className="text-text-muted">
+                            →
+                          </span>
+
+                          <div
+                            className={
+                              appointment.status ===
+                              "completed"
+                                ? "font-medium text-green-600"
+                                : "text-text-muted"
+                            }
+                          >
+                            Completed
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -375,3 +650,4 @@ export default function SchedulePage() {
     </div>
   );
 }
+

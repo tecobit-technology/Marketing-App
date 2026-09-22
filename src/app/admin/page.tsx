@@ -37,6 +37,11 @@ export default function AdminDashboardPage() {
       try {
         const response = await fetch("/api/admin/dashboard");
 
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+
         if (!response.ok) {
           throw new Error("Failed to fetch dashboard data");
         }
