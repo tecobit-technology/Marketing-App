@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 
 import { connectToDatabase } from "@/lib/db";
-import { authOptions } from "@/lib/auth";
+import { platformAdminAuthOptions } from "@/lib/platform-admin-auth";
 import { DemoRequest } from "@/models/platform-admin/DemoRequest";
 import { Lead } from "@/models/platform-admin/Leads";
+import { sendDemoRequestEmail } from "@/lib/email";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(platformAdminAuthOptions);
 
     // Only Platform Admin can view all demo requests
     if (session?.user?.role !== "platform_admin") {
@@ -17,15 +18,13 @@ export async function GET() {
           success: false,
           message: "Unauthorized.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     await connectToDatabase();
 
-    const demos = await DemoRequest.find({})
-      .sort({ createdAt: -1 })
-      .lean();
+    const demos = await DemoRequest.find({}).sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({
       success: true,
@@ -39,7 +38,7 @@ export async function GET() {
         success: false,
         message: "Failed to fetch demo requests",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -50,7 +49,7 @@ export async function POST(request: Request) {
     // 1. Verify authenticated user
     // --------------------------------------------------
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(platformAdminAuthOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -58,7 +57,7 @@ export async function POST(request: Request) {
           success: false,
           message: "You must be signed in to schedule a demo.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
           success: false,
           message: "Platform admins cannot submit customer demo requests.",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -77,32 +76,20 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const {
-      phone,
-      company,
-      clinicSize,
-      preferredDate,
-      preferredTime,
-      notes,
-    } = body;
+    const { phone, company, clinicSize, preferredDate, preferredTime, notes } =
+      body;
 
     // --------------------------------------------------
     // 2. Validate customer-provided fields
     // --------------------------------------------------
 
-    if (
-      !phone ||
-      !company ||
-      !clinicSize ||
-      !preferredDate ||
-      !preferredTime
-    ) {
+    if (!phone || !company || !clinicSize || !preferredDate || !preferredTime) {
       return NextResponse.json(
         {
           success: false,
           message: "All required fields must be provided.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -120,10 +107,9 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Your account is missing required profile information.",
+          message: "Your account is missing required profile information.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -139,7 +125,7 @@ export async function POST(request: Request) {
           success: false,
           message: "Please provide a valid demo date.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -192,6 +178,24 @@ export async function POST(request: Request) {
       // Every new request starts as Requested
       status: "Requested",
     });
+    try {
+      await sendDemoRequestEmail({
+        name,
+        email,
+        phone,
+        company,
+        clinicSize,
+        preferredDate: demoDate.toISOString(),
+        preferredTime,
+      });
+
+      console.log("Demo request email sent successfully.");
+    } catch (emailError) {
+      console.error(
+        "Demo request created, but email notification failed:",
+        emailError,
+      );
+    }
 
     return NextResponse.json(
       {
@@ -199,7 +203,7 @@ export async function POST(request: Request) {
         message: "Demo request submitted successfully.",
         data: demoRequest,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Demo request POST error:", error);
@@ -209,7 +213,7 @@ export async function POST(request: Request) {
         success: false,
         message: "Failed to create demo request.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

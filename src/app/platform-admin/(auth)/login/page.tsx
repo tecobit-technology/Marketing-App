@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function PlatformAdminLoginPage() {
@@ -21,15 +20,61 @@ export default function PlatformAdminLoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-  email: email.trim().toLowerCase(),
-  password,
-  loginType: "platform_admin",
-  rememberMe: String(rememberMe),
-  redirect: false,
-});
+      /*
+       * Get the CSRF token from the Platform Admin
+       * NextAuth endpoint, not the normal mySaaS endpoint.
+       */
+      const csrfResponse = await fetch(
+        "/api/platform-admin/auth/csrf",
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
 
-      if (result?.error) {
+      if (!csrfResponse.ok) {
+        throw new Error("Failed to initialize Platform Admin authentication.");
+      }
+
+      const csrfData = await csrfResponse.json();
+
+      /*
+       * Submit credentials directly to the Platform Admin
+       * NextAuth credentials callback.
+       */
+      const body = new URLSearchParams({
+        csrfToken: csrfData.csrfToken,
+        email: email.trim().toLowerCase(),
+        password,
+        rememberMe: String(rememberMe),
+        callbackUrl: "/platform-admin",
+        json: "true",
+      });
+
+      const loginResponse = await fetch(
+        "/api/platform-admin/auth/callback/credentials",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body,
+        },
+      );
+
+      /*
+       * NextAuth normally redirects after a successful credentials
+       * login. We only need to verify that the request succeeded.
+       */
+      if (
+        !loginResponse.ok &&
+        loginResponse.status !== 302 &&
+        loginResponse.status !== 303
+      ) {
         setError("Invalid email or password.");
         setLoading(false);
         return;
@@ -49,7 +94,6 @@ export default function PlatformAdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-bg-page px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl border border-border-default shadow-lg p-8">
-          {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-4">
               <div className="h-12 w-12 rounded-lg bg-brand-logo flex items-center justify-center text-white font-bold text-xl">
@@ -76,9 +120,7 @@ export default function PlatformAdminLoginPage() {
             </p>
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -101,7 +143,6 @@ export default function PlatformAdminLoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -124,7 +165,6 @@ export default function PlatformAdminLoginPage() {
               />
             </div>
 
-            {/* Remember Me + Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -150,19 +190,15 @@ export default function PlatformAdminLoginPage() {
               </Link>
             </div>
 
-            {/* Error */}
             {error && (
               <div
                 role="alert"
                 className="rounded-md border border-red-200 bg-red-50 px-3 py-2"
               >
-                <p className="text-sm text-red-600">
-                  {error}
-                </p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -172,7 +208,6 @@ export default function PlatformAdminLoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border-default" />
@@ -185,7 +220,6 @@ export default function PlatformAdminLoginPage() {
             </div>
           </div>
 
-          {/* Back to Clinic Admin */}
           <div className="text-center">
             <Link
               href="/admin"
@@ -196,7 +230,6 @@ export default function PlatformAdminLoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-text-muted mt-6">
           © 2026 mysaas. All rights reserved.
         </p>

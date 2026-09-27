@@ -306,7 +306,7 @@ export default function DemoPageContent() {
        * Submit the request.
        */
       const response = await fetch(
-        "/api/platform-admin/demos",
+        "/api/demos",
         {
           method: "POST",
           headers: {
