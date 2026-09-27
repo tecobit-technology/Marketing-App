@@ -5,7 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
+  ArrowLeft,
   Building2,
+  Check,
   LockKeyhole,
   Mail,
   User,
@@ -165,13 +167,23 @@ export default function SignupPage() {
     confirmPassword: "",
   });
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verificationEmail, setVerificationEmail] =
+    useState("");
+
+  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+  const [isVerifying, setIsVerifying] =
+    useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] =
+    useState(false);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -188,6 +200,20 @@ export default function SignupPage() {
     }
   }
 
+  function handleOtpChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const value = e.target.value
+      .replace(/\D/g, "")
+      .slice(0, 6);
+
+    setOtp(value);
+
+    if (error) {
+      setError("");
+    }
+  }
+
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>,
   ) {
@@ -197,10 +223,6 @@ export default function SignupPage() {
     setIsSubmitting(true);
 
     try {
-      // -----------------------------------------------
-      // Client-side validation
-      // -----------------------------------------------
-
       const parsed = signupSchema.safeParse(form);
 
       if (!parsed.success) {
@@ -210,10 +232,6 @@ export default function SignupPage() {
         );
         return;
       }
-
-      // -----------------------------------------------
-      // Create clinic + owner
-      // -----------------------------------------------
 
       const response = await fetch(
         "/api/auth/register",
@@ -231,35 +249,17 @@ export default function SignupPage() {
       if (!response.ok) {
         setError(
           data?.error ??
-            "Unable to create your clinic account. Please try again.",
+            "Unable to start registration. Please try again.",
         );
         return;
       }
 
-      // -----------------------------------------------
-      // Automatically sign in
-      // -----------------------------------------------
-
-      const loginResult = await signIn(
-        "credentials",
-        {
-          email: parsed.data.email,
-          password: parsed.data.password,
-          redirect: false,
-        },
+      setVerificationEmail(
+        data?.email ?? parsed.data.email,
       );
 
-      if (loginResult?.error) {
-        router.push("/login");
-        return;
-      }
-
-      // -----------------------------------------------
-      // Owner dashboard
-      // -----------------------------------------------
-
-      router.push("/admin");
-      router.refresh();
+      setOtp("");
+      setShowOtpStep(true);
     } catch (error) {
       console.error("SIGNUP_ERROR:", error);
 
@@ -271,6 +271,85 @@ export default function SignupPage() {
     }
   }
 
+  async function handleVerifyOtp(
+    e: React.FormEvent<HTMLFormElement>,
+  ) {
+    e.preventDefault();
+
+    setError("");
+
+    if (!/^\d{6}$/.test(otp)) {
+      setError(
+        "Please enter the 6-digit verification code.",
+      );
+      return;
+    }
+
+    setIsVerifying(true);
+
+    try {
+      const response = await fetch(
+        "/api/auth/veriy-signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: verificationEmail,
+            otp,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(
+          data?.error ??
+            "Unable to verify your email. Please try again.",
+        );
+        return;
+      }
+
+      // Account has now been created.
+      // Only sign in after successful OTP verification.
+      const loginResult = await signIn(
+        "credentials",
+        {
+          email: verificationEmail,
+          password: form.password,
+          redirect: false,
+        },
+      );
+
+      if (loginResult?.error) {
+        router.push("/login");
+        return;
+      }
+
+      router.push("/demo");
+      router.refresh();
+    } catch (error) {
+      console.error(
+        "VERIFY_SIGNUP_ERROR:",
+        error,
+      );
+
+      setError(
+        "Unable to verify your email. Please try again.",
+      );
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  function handleBackToSignup() {
+    setShowOtpStep(false);
+    setOtp("");
+    setError("");
+  }
+
   async function handleGoogleSignup() {
     setError("");
     setIsGoogleLoading(true);
@@ -280,23 +359,23 @@ export default function SignupPage() {
         callbackUrl: "/demo",
       });
     } catch (error) {
-      console.error("GOOGLE_SIGNUP_ERROR:", error);
+      console.error(
+        "GOOGLE_SIGNUP_ERROR:",
+        error,
+      );
+
       setError(
         "Unable to continue with Google. Please try again.",
       );
+
       setIsGoogleLoading(false);
     }
   }
 
   return (
     <main className="min-h-screen bg-secondary-100">
-      {/* =================================================
-          HERO / SIGNUP SECTION
-      ================================================= */}
-
       <section className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          {/* Back */}
           <Link
             href="/"
             className="text-sm font-medium text-brand-primary hover:underline"
@@ -347,7 +426,6 @@ export default function SignupPage() {
                 ))}
               </div>
 
-              {/* Trial information */}
               <div className="mt-10 rounded-2xl border border-neutral-200 bg-white p-6">
                 <p className="text-sm font-semibold text-text-heading">
                   What happens after signup?
@@ -358,351 +436,459 @@ export default function SignupPage() {
                     <span className="font-semibold">
                       1.
                     </span>{" "}
-                    Your clinic is created.
+                    Your signup information is saved securely.
                   </p>
 
                   <p>
                     <span className="font-semibold">
                       2.
                     </span>{" "}
-                    You become the clinic owner.
+                    A verification code is sent to your email.
                   </p>
 
                   <p>
                     <span className="font-semibold">
                       3.
                     </span>{" "}
-                    You are automatically signed in.
+                    Verify your email using the 6-digit code.
                   </p>
 
                   <p>
                     <span className="font-semibold">
                       4.
                     </span>{" "}
-                    You can start managing your clinic.
+                    Your clinic account is created and you are
+                    signed in.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* =================================================
-                RIGHT SIDE - FORM
+                RIGHT SIDE
             ================================================= */}
 
             <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-              <h2 className="text-xl font-bold text-text-heading">
-                Create Your Clinic Account
-              </h2>
+              {!showOtpStep ? (
+                <>
+                  <h2 className="text-xl font-bold text-text-heading">
+                    Create Your Clinic Account
+                  </h2>
 
-              <p className="mt-2 text-sm text-text-muted">
-                You will become the owner of this clinic.
-              </p>
-
-              <form
-                onSubmit={handleSubmit}
-                className="mt-7 space-y-5"
-              >
-                {/* =================================================
-                    OWNER NAME
-                ================================================= */}
-
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="mb-1.5 block text-sm font-medium text-text-heading"
-                  >
-                    Owner Full Name
-                  </label>
-
-                  <div className="relative">
-                    <User
-                      size={18}
-                      strokeWidth={1.8}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={form.name}
-                      onChange={handleChange}
-                      placeholder="Dr. Jane Smith"
-                      autoComplete="name"
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
-                  </div>
-                </div>
-
-                {/* =================================================
-                    CLINIC NAME
-                ================================================= */}
-
-                <div>
-                  <label
-                    htmlFor="clinicName"
-                    className="mb-1.5 block text-sm font-medium text-text-heading"
-                  >
-                    Clinic Name
-                  </label>
-
-                  <div className="relative">
-                    <Building2
-                      size={18}
-                      strokeWidth={1.8}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      id="clinicName"
-                      name="clinicName"
-                      type="text"
-                      value={form.clinicName}
-                      onChange={handleChange}
-                      placeholder="Smile Dental Clinic"
-                      autoComplete="organization"
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
-                  </div>
-                </div>
-
-                {/* =================================================
-                    EMAIL
-                ================================================= */}
-
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-1.5 block text-sm font-medium text-text-heading"
-                  >
-                    Work Email
-                  </label>
-
-                  <div className="relative">
-                    <Mail
-                      size={18}
-                      strokeWidth={1.8}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      placeholder="owner@yourclinic.com"
-                      autoComplete="email"
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
-                  </div>
-                </div>
-
-                {/* =================================================
-                    PASSWORD
-                ================================================= */}
-
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-sm font-medium text-text-heading"
-                  >
-                    Password
-                  </label>
-
-                  <div className="relative">
-                    <LockKeyhole
-                      size={18}
-                      strokeWidth={1.8}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      id="password"
-                      name="password"
-                      type={
-                        showPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={form.password}
-                      onChange={handleChange}
-                      placeholder="Create a strong password"
-                      autoComplete="new-password"
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPassword(
-                          (prev) => !prev,
-                        )
-                      }
-                      disabled={
-                        isSubmitting ||
-                        isGoogleLoading
-                      }
-                      aria-label={
-                        showPassword
-                          ? "Hide password"
-                          : "Show password"
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <EyeIcon
-                        open={showPassword}
-                      />
-                    </button>
-                  </div>
-
-                  <p className="mt-1.5 text-xs text-text-muted">
-                    Minimum 8 characters with uppercase,
-                    lowercase, number, and symbol.
+                  <p className="mt-2 text-sm text-text-muted">
+                    You will become the owner of this clinic.
                   </p>
-                </div>
 
-                {/* =================================================
-                    CONFIRM PASSWORD
-                ================================================= */}
-
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="mb-1.5 block text-sm font-medium text-text-heading"
+                  <form
+                    onSubmit={handleSubmit}
+                    className="mt-7 space-y-5"
                   >
-                    Confirm Password
-                  </label>
+                    {/* OWNER NAME */}
 
-                  <div className="relative">
-                    <LockKeyhole
-                      size={18}
-                      strokeWidth={1.8}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                      aria-hidden="true"
-                    />
+                    <div>
+                      <label
+                        htmlFor="name"
+                        className="mb-1.5 block text-sm font-medium text-text-heading"
+                      >
+                        Owner Full Name
+                      </label>
 
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={
-                        showConfirmPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="Confirm your password"
-                      autoComplete="new-password"
-                      disabled={isSubmitting || isGoogleLoading}
-                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    />
+                      <div className="relative">
+                        <User
+                          size={18}
+                          strokeWidth={1.8}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                          aria-hidden="true"
+                        />
+
+                        <input
+                          id="name"
+                          name="name"
+                          type="text"
+                          value={form.name}
+                          onChange={handleChange}
+                          placeholder="Dr. Jane Smith"
+                          autoComplete="name"
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CLINIC NAME */}
+
+                    <div>
+                      <label
+                        htmlFor="clinicName"
+                        className="mb-1.5 block text-sm font-medium text-text-heading"
+                      >
+                        Clinic Name
+                      </label>
+
+                      <div className="relative">
+                        <Building2
+                          size={18}
+                          strokeWidth={1.8}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                          aria-hidden="true"
+                        />
+
+                        <input
+                          id="clinicName"
+                          name="clinicName"
+                          type="text"
+                          value={form.clinicName}
+                          onChange={handleChange}
+                          placeholder="Smile Dental Clinic"
+                          autoComplete="organization"
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+
+                    {/* EMAIL */}
+
+                    <div>
+                      <label
+                        htmlFor="email"
+                        className="mb-1.5 block text-sm font-medium text-text-heading"
+                      >
+                        Work Email
+                      </label>
+
+                      <div className="relative">
+                        <Mail
+                          size={18}
+                          strokeWidth={1.8}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                          aria-hidden="true"
+                        />
+
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={form.email}
+                          onChange={handleChange}
+                          placeholder="owner@yourclinic.com"
+                          autoComplete="email"
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-4 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+
+                    {/* PASSWORD */}
+
+                    <div>
+                      <label
+                        htmlFor="password"
+                        className="mb-1.5 block text-sm font-medium text-text-heading"
+                      >
+                        Password
+                      </label>
+
+                      <div className="relative">
+                        <LockKeyhole
+                          size={18}
+                          strokeWidth={1.8}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                          aria-hidden="true"
+                        />
+
+                        <input
+                          id="password"
+                          name="password"
+                          type={
+                            showPassword
+                              ? "text"
+                              : "password"
+                          }
+                          value={form.password}
+                          onChange={handleChange}
+                          placeholder="Create a strong password"
+                          autoComplete="new-password"
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowPassword(
+                              (prev) => !prev,
+                            )
+                          }
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          aria-label={
+                            showPassword
+                              ? "Hide password"
+                              : "Show password"
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <EyeIcon
+                            open={showPassword}
+                          />
+                        </button>
+                      </div>
+
+                      <p className="mt-1.5 text-xs text-text-muted">
+                        Minimum 8 characters with uppercase,
+                        lowercase, number, and symbol.
+                      </p>
+                    </div>
+
+                    {/* CONFIRM PASSWORD */}
+
+                    <div>
+                      <label
+                        htmlFor="confirmPassword"
+                        className="mb-1.5 block text-sm font-medium text-text-heading"
+                      >
+                        Confirm Password
+                      </label>
+
+                      <div className="relative">
+                        <LockKeyhole
+                          size={18}
+                          strokeWidth={1.8}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+                          aria-hidden="true"
+                        />
+
+                        <input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={
+                            showConfirmPassword
+                              ? "text"
+                              : "password"
+                          }
+                          value={form.confirmPassword}
+                          onChange={handleChange}
+                          placeholder="Confirm your password"
+                          autoComplete="new-password"
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-3 pl-11 pr-12 text-sm text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(
+                              (prev) => !prev,
+                            )
+                          }
+                          disabled={
+                            isSubmitting ||
+                            isGoogleLoading
+                          }
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <EyeIcon
+                            open={
+                              showConfirmPassword
+                            }
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ERROR */}
+
+                    {error && (
+                      <div
+                        role="alert"
+                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                      >
+                        {error}
+                      </div>
+                    )}
+
+                    {/* SUBMIT */}
 
                     <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(
-                          (prev) => !prev,
-                        )
-                      }
+                      type="submit"
                       disabled={
                         isSubmitting ||
                         isGoogleLoading
                       }
-                      aria-label={
-                        showConfirmPassword
-                          ? "Hide confirm password"
-                          : "Show confirm password"
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition hover:text-text-heading disabled:cursor-not-allowed disabled:opacity-50"
+                      className="w-full rounded-xl bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <EyeIcon
-                        open={
-                          showConfirmPassword
-                        }
-                      />
+                      {isSubmitting
+                        ? "Sending Verification Code..."
+                        : "Start Free Trial"}
                     </button>
+                  </form>
+
+                  {/* GOOGLE */}
+
+                  <div className="my-6 flex items-center gap-4">
+                    <div className="h-px flex-1 bg-neutral-200" />
+
+                    <span className="text-xs font-medium text-text-muted">
+                      OR
+                    </span>
+
+                    <div className="h-px flex-1 bg-neutral-200" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignup}
+                    disabled={
+                      isSubmitting ||
+                      isGoogleLoading
+                    }
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white px-6 py-3.5 text-sm font-semibold text-text-heading transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <GoogleIcon />
+
+                    {isGoogleLoading
+                      ? "Connecting to Google..."
+                      : "Continue with Google"}
+                  </button>
+
+                  <p className="mt-5 text-center text-xs text-text-muted">
+                    Already have an account?{" "}
+                    <Link
+                      href="/login"
+                      className="font-medium text-brand-primary hover:underline"
+                    >
+                      Sign in
+                    </Link>
+                  </p>
+                </>
+              ) : (
+                /* =================================================
+                    OTP VERIFICATION
+                ================================================= */
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleBackToSignup}
+                    disabled={isVerifying}
+                    className="mb-6 flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-heading disabled:opacity-50"
+                  >
+                    <ArrowLeft size={16} />
+                    Back to signup
+                  </button>
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-brand-primary">
+                    <Mail
+                      size={22}
+                      strokeWidth={1.8}
+                    />
+                  </div>
+
+                  <h2 className="mt-5 text-2xl font-bold text-text-heading">
+                    Verify your email
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-text-muted">
+                    We sent a 6-digit verification code
+                    to:
+                  </p>
+
+                  <p className="mt-1 break-all text-sm font-semibold text-text-heading">
+                    {verificationEmail}
+                  </p>
+
+                  <form
+                    onSubmit={handleVerifyOtp}
+                    className="mt-7"
+                  >
+                    <label
+                      htmlFor="otp"
+                      className="mb-2 block text-sm font-medium text-text-heading"
+                    >
+                      Verification Code
+                    </label>
+
+                    <input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={otp}
+                      onChange={handleOtpChange}
+                      disabled={isVerifying}
+                      placeholder="000000"
+                      autoFocus
+                      className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-center text-2xl font-bold tracking-[0.45em] text-text-heading outline-none transition placeholder:text-text-disabled focus:border-brand-primary focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+
+                    <p className="mt-2 text-center text-xs text-text-muted">
+                      The code expires in 10 minutes.
+                    </p>
+
+                    {error && (
+                      <div
+                        role="alert"
+                        className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                      >
+                        {error}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={
+                        isVerifying ||
+                        otp.length !== 6
+                      }
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isVerifying ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          Verify Email
+                          <Check size={17} />
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  <div className="mt-6 rounded-xl bg-neutral-50 p-4">
+                    <p className="text-center text-xs leading-5 text-text-muted">
+                      Check your inbox and spam folder for
+                      the verification email.
+                    </p>
                   </div>
                 </div>
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
-                {error && (
-                  <div
-                    role="alert"
-                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
-                  >
-                    {error}
-                  </div>
-                )}
-
-                {/* =================================================
-                    SUBMIT
-                ================================================= */}
-
-                <button
-                  type="submit"
-                  disabled={
-                    isSubmitting ||
-                    isGoogleLoading
-                  }
-                  className="w-full rounded-xl bg-brand-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting
-                    ? "Creating Clinic..."
-                    : "Start Free Trial"}
-                </button>
-              </form>
-
-              {/* =================================================
-                  GOOGLE SIGN UP
-              ================================================= */}
-
-              <div className="my-6 flex items-center gap-4">
-                <div className="h-px flex-1 bg-neutral-200" />
-
-                <span className="text-xs font-medium text-text-muted">
-                  OR
-                </span>
-
-                <div className="h-px flex-1 bg-neutral-200" />
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGoogleSignup}
-                disabled={
-                  isSubmitting ||
-                  isGoogleLoading
-                }
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white px-6 py-3.5 text-sm font-semibold text-text-heading transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <GoogleIcon />
-
-                {isGoogleLoading
-                  ? "Connecting to Google..."
-                  : "Continue with Google"}
-              </button>
-
-              <p className="mt-5 text-center text-xs text-text-muted">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="font-medium text-brand-primary hover:underline"
-                >
-                  Sign in
-                </Link>
-              </p>
+              )}
             </div>
           </div>
         </div>

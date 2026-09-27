@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -115,19 +115,56 @@ export default function PlatformAdminSidebar() {
     return item.children.some((child) => pathname === child.href);
   };
 
-  const handleLogout = async () => {
-    try {
-      setLoggingOut(true);
+ const handleLogout = async () => {
+  try {
+    setLoggingOut(true);
 
-      await signOut({
-        callbackUrl: "/platform-admin/login",
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-      setLoggingOut(false);
-      setShowLogoutModal(false);
+    const csrfResponse = await fetch(
+      "/api/platform-admin/auth/csrf",
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!csrfResponse.ok) {
+      throw new Error("Failed to initialize logout.");
     }
-  };
+
+    const csrfData = await csrfResponse.json();
+
+    const body = new URLSearchParams({
+      csrfToken: csrfData.csrfToken,
+      callbackUrl: "/platform-admin/login",
+      json: "true",
+    });
+
+    const logoutResponse = await fetch(
+      "/api/platform-admin/auth/signout",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+      },
+    );
+
+    if (!logoutResponse.ok) {
+      throw new Error("Platform Admin logout failed.");
+    }
+
+    window.location.href = "/platform-admin/login";
+  } catch (error) {
+    console.error("Logout error:", error);
+    setLoggingOut(false);
+    setShowLogoutModal(false);
+  }
+};
 
   return (
     <>
