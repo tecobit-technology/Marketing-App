@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   ChevronDown,
@@ -47,7 +47,7 @@ function Dropdown({
         <ChevronDownIcon className="h-3.5 w-3.5 text-current" />
       </button>
 
-      <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100">
+      <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-3 opacity-0 transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
         <div className="w-64 rounded-lg border border-border-default bg-white p-2 shadow-lg">
           {items.map((item) => (
             <Link
@@ -141,7 +141,7 @@ function UserProfile({ onLogoutRequest }: UserProfileProps) {
 
       {profileOpen && (
         <div
-          className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-xl border border-border-default bg-white shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border-default bg-white shadow-lg"
           role="menu"
         >
           <div className="border-b border-neutral-100 px-4 py-4">
@@ -193,6 +193,8 @@ function UserProfile({ onLogoutRequest }: UserProfileProps) {
 }
 
 export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
@@ -211,6 +213,18 @@ export default function Navbar() {
     email.charAt(0) ||
     "U"
   ).toUpperCase();
+
+  // Full width at the top of the page, small floating container after scrolling
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const handleLogout = async () => {
     try {
@@ -233,231 +247,266 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border-default bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <Link
-            href="/"
-            className="text-xl font-bold text-brand-primary"
+      {/*
+        The header keeps a fixed h-16 in the page flow, so the content below
+        never jumps when the bar shrinks. Only the inner bar animates.
+      */}
+      <header className="pointer-events-none fixed top-0 z-50 h-16 w-full">
+        <div
+          className={`pointer-events-auto relative mx-auto w-full transition-all duration-300 ease-out ${
+            scrolled
+              ? "mt-2 max-w-5xl rounded-2xl border border-border-default bg-white/90 shadow-lg backdrop-blur-md"
+              : "mt-0 max-w-full rounded-none border border-transparent border-b-border-default bg-white shadow-none"
+          }`}
+        >
+          <div
+            className={`mx-auto flex max-w-7xl items-center justify-between transition-all duration-300 ${
+              scrolled
+                ? "h-14 px-4 lg:px-6"
+                : "h-16 px-6 lg:px-10"
+            }`}
           >
-            mysaas
-          </Link>
-
-          <nav className="hidden items-center gap-[31px] text-sm text-text-heading md:flex">
-            <Dropdown label="Product" items={products} />
-
-            <Dropdown label="Solutions" items={solutions} />
-
             <Link
-              href="/product/pricing"
-              className="transition-colors hover:text-brand-primary"
+              href="/"
+              className="text-xl font-bold text-brand-primary"
             >
-              Pricing
+              mysaas
             </Link>
 
-            <Dropdown label="Resources" items={resources} />
-
-            <Link
-              href="/company"
-              className="transition-colors hover:text-brand-primary"
+            <nav
+              className={`hidden items-center text-sm text-text-heading transition-all duration-300 md:flex ${
+                scrolled ? "gap-6" : "gap-[31px]"
+              }`}
             >
-              Company
-            </Link>
-          </nav>
+              <Dropdown label="Product" items={products} />
 
-          <div className="flex items-center gap-3">
-            <UserProfile onLogoutRequest={handleLogoutRequest} />
+              <Dropdown label="Solutions" items={solutions} />
 
-            <button
-              type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-text-heading transition-colors hover:bg-neutral-100 md:hidden"
-              aria-label={
-                mobileMenuOpen
-                  ? "Close navigation menu"
-                  : "Open navigation menu"
-              }
-              aria-expanded={mobileMenuOpen}
-              onClick={() =>
-                setMobileMenuOpen((open) => !open)
-              }
-            >
-              {mobileMenuOpen ? (
-                <span aria-hidden="true">✕</span>
-              ) : (
-                <span aria-hidden="true">☰</span>
-              )}
-            </button>
-          </div>
-        </div>
+              <Link
+                href="/product/pricing"
+                className="transition-colors hover:text-brand-primary"
+              >
+                Pricing
+              </Link>
 
-        {mobileMenuOpen && (
-          <div className="border-t border-border-default bg-white md:hidden">
-            <div className="mx-auto max-w-7xl space-y-4 px-6 py-5">
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                  onClick={() =>
-                    setMobileProductsOpen((open) => !open)
-                  }
-                >
-                  <span>Product</span>
-                  <span className="text-xs">
-                    {mobileProductsOpen ? "−" : "+"}
-                  </span>
-                </button>
+              <Dropdown label="Resources" items={resources} />
 
-                {mobileProductsOpen && (
-                  <div className="space-y-1 rounded-xl bg-white p-2">
-                    {products.map((product) => (
-                      <Link
-                        key={product.label}
-                        href={product.href}
-                        className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                      >
-                        {product.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Link
+                href="/company"
+                className="transition-colors hover:text-brand-primary"
+              >
+                Company
+              </Link>
+            </nav>
 
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                  onClick={() =>
-                    setMobileSolutionsOpen((open) => !open)
-                  }
-                >
-                  <span>Solutions</span>
-                  <span className="text-xs">
-                    {mobileSolutionsOpen ? "−" : "+"}
-                  </span>
-                </button>
+            <div className="flex items-center gap-3">
+              <UserProfile onLogoutRequest={handleLogoutRequest} />
 
-                {mobileSolutionsOpen && (
-                  <div className="space-y-1 rounded-xl bg-white p-2">
-                    {solutions.map((solution) => (
-                      <Link
-                        key={solution.label}
-                        href={solution.href}
-                        className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                      >
-                        {solution.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
-                  onClick={() =>
-                    setMobileResourcesOpen((open) => !open)
-                  }
-                >
-                  <span>Resources</span>
-                  <span className="text-xs">
-                    {mobileResourcesOpen ? "−" : "+"}
-                  </span>
-                </button>
-
-                {mobileResourcesOpen && (
-                  <div className="space-y-1 rounded-xl bg-white p-2">
-                    {resources.map((resource) => (
-                      <Link
-                        key={resource.label}
-                        href={resource.href}
-                        className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                      >
-                        {resource.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1 border-t border-neutral-200 pt-4">
-                <Link
-                  href="/product/pricing"
-                  className="block rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                >
-                  Pricing
-                </Link>
-
-                <Link
-                  href="/company"
-                  className="block rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                >
-                  Company
-                </Link>
-              </div>
-
-              <div className="border-t border-neutral-200 pt-4">
-                {status === "loading" ? (
-                  <div className="h-12 animate-pulse rounded-xl bg-neutral-100" />
-                ) : session?.user ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-4 py-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
-                        {initial}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-text-heading">
-                          {displayName}
-                        </p>
-
-                        <p className="truncate text-xs text-text-body">
-                          {email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Link
-                      href="/demo"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
-                    >
-                      <UserCircle className="h-4 w-4" />
-                      My Account
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleLogoutRequest();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </button>
-                  </div>
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-text-heading transition-colors hover:bg-neutral-100 md:hidden"
+                aria-label={
+                  mobileMenuOpen
+                    ? "Close navigation menu"
+                    : "Open navigation menu"
+                }
+                aria-expanded={mobileMenuOpen}
+                onClick={() =>
+                  setMobileMenuOpen((open) => !open)
+                }
+              >
+                {mobileMenuOpen ? (
+                  <span aria-hidden="true">✕</span>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    <Link
-                      href="/login"
-                      className="rounded-lg border border-border-default px-4 py-3 text-center text-sm font-medium text-text-heading transition-colors hover:bg-neutral-50"
-                    >
-                      Login
-                    </Link>
-
-                    <Link
-                      href="/signup"
-                      className="rounded-lg bg-brand-primary px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover"
-                    >
-                      Sign Up
-                    </Link>
-                  </div>
+                  <span aria-hidden="true">☰</span>
                 )}
-              </div>
+              </button>
             </div>
           </div>
-        )}
+
+          {mobileMenuOpen && (
+            <div
+              className={`absolute inset-x-0 top-full max-h-[calc(100dvh-5rem)] overflow-y-auto bg-white md:hidden ${
+                scrolled
+                  ? "mt-2 rounded-2xl border border-border-default shadow-lg"
+                  : "border-b border-t border-border-default"
+              }`}
+            >
+              <div className="mx-auto max-w-7xl space-y-4 px-6 py-5">
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
+                    onClick={() =>
+                      setMobileProductsOpen((open) => !open)
+                    }
+                  >
+                    <span>Product</span>
+                    <span className="text-xs">
+                      {mobileProductsOpen ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {mobileProductsOpen && (
+                    <div className="space-y-1 rounded-xl bg-white p-2">
+                      {products.map((product) => (
+                        <Link
+                          key={product.label}
+                          href={product.href}
+                          onClick={closeMobileMenu}
+                          className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                        >
+                          {product.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
+                    onClick={() =>
+                      setMobileSolutionsOpen((open) => !open)
+                    }
+                  >
+                    <span>Solutions</span>
+                    <span className="text-xs">
+                      {mobileSolutionsOpen ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {mobileSolutionsOpen && (
+                    <div className="space-y-1 rounded-xl bg-white p-2">
+                      {solutions.map((solution) => (
+                        <Link
+                          key={solution.label}
+                          href={solution.href}
+                          onClick={closeMobileMenu}
+                          className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                        >
+                          {solution.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-left text-sm font-medium text-text-heading transition-colors hover:bg-neutral-100"
+                    onClick={() =>
+                      setMobileResourcesOpen((open) => !open)
+                    }
+                  >
+                    <span>Resources</span>
+                    <span className="text-xs">
+                      {mobileResourcesOpen ? "−" : "+"}
+                    </span>
+                  </button>
+
+                  {mobileResourcesOpen && (
+                    <div className="space-y-1 rounded-xl bg-white p-2">
+                      {resources.map((resource) => (
+                        <Link
+                          key={resource.label}
+                          href={resource.href}
+                          onClick={closeMobileMenu}
+                          className="block rounded-lg px-4 py-2 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                        >
+                          {resource.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1 border-t border-neutral-200 pt-4">
+                  <Link
+                    href="/product/pricing"
+                    onClick={closeMobileMenu}
+                    className="block rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                  >
+                    Pricing
+                  </Link>
+
+                  <Link
+                    href="/company"
+                    onClick={closeMobileMenu}
+                    className="block rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                  >
+                    Company
+                  </Link>
+                </div>
+
+                <div className="border-t border-neutral-200 pt-4">
+                  {status === "loading" ? (
+                    <div className="h-12 animate-pulse rounded-xl bg-neutral-100" />
+                  ) : session?.user ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 rounded-xl bg-neutral-50 px-4 py-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+                          {initial}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-text-heading">
+                            {displayName}
+                          </p>
+
+                          <p className="truncate text-xs text-text-body">
+                            {email}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Link
+                        href="/demo"
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-text-heading transition-colors hover:bg-neutral-100"
+                      >
+                        <UserCircle className="h-4 w-4" />
+                        My Account
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeMobileMenu();
+                          handleLogoutRequest();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <Link
+                        href="/login"
+                        onClick={closeMobileMenu}
+                        className="rounded-lg border border-border-default px-4 py-3 text-center text-sm font-medium text-text-heading transition-colors hover:bg-neutral-50"
+                      >
+                        Login
+                      </Link>
+
+                      <Link
+                        href="/signup"
+                        onClick={closeMobileMenu}
+                        className="rounded-lg bg-brand-primary px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover"
+                      >
+                        Sign Up
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Logout Confirmation Modal */}

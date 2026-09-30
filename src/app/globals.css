@@ -96,5 +96,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+@keyframes clinic-marquee {
+  from {
+    transform: translateX(0);
+  }
 
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-clinic-marquee {
+  animation: clinic-marquee 30s linear infinite;
+}
+
+/* Pause when mouse is over the stats marquee */
+.stats-marquee:hover .animate-clinic-marquee {
+  animation-play-state: paused;
+}
 
