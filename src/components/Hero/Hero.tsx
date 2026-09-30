@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import DashboardPreview from '@/components/DashboardPreview/DashboardPreview';
 
 export default function Hero() {
   return (
@@ -42,7 +41,10 @@ export default function Hero() {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <DashboardPreview />
+          <img src="/images/dashboard.png" 
+          alt="mySaaS Dental Practice Dashboard" 
+          className="h-full w-full max-w-[700px] rounded-2xl border border-border-default shadow-xl" 
+            />
         </div>
       </div>
     </section>
