@@ -131,3 +131,21 @@ body {
 .animate-carousel-progress {
   animation: carousel-progress 4s linear both;
 }
+
+@keyframes hero-dashboard-float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-14px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.hero-dashboard-float {
+  animation: hero-dashboard-float 4s ease-in-out infinite;
+}
