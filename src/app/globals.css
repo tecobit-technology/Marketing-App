@@ -114,4 +114,20 @@ body {
 .stats-marquee:hover .animate-clinic-marquee {
   animation-play-state: paused;
 }
+@keyframes product-zoom {
+  from {
+    transform: scale(1);
+  }
 
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.animate-product-zoom {
+  animation: product-zoom 4s ease-in-out both;
+}
+
+.animate-carousel-progress {
+  animation: carousel-progress 4s linear both;
+}

@@ -1,6 +1,5 @@
-import Link from 'next/link';
-import DashboardPreview from '@/components/DashboardPreview/DashboardPreview';
-
+import Link from "next/link";
+import Image from "next/image";
 export default function Hero() {
   return (
     <section className="bg-neutral-50 py-16 lg:py-[83px]">
@@ -17,8 +16,9 @@ export default function Hero() {
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-text-muted lg:text-lg">
-            Everything your clinic needs — patient records, scheduling, clinical notes,
-            staff management, and analytics — unified in one beautiful dashboard.
+            Everything your clinic needs — patient records, scheduling, clinical
+            notes, staff management, and analytics — unified in one beautiful
+            dashboard.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
@@ -37,12 +37,22 @@ export default function Hero() {
           </div>
 
           <p className="mt-6 text-[13px] text-text-muted">
-            ✓ No credit card required &nbsp;&nbsp; ✓ 30-day free trial &nbsp;&nbsp; ✓ Cancel anytime
+            ✓ No credit card required &nbsp;&nbsp; ✓ 30-day free trial
+            &nbsp;&nbsp; ✓ Cancel anytime
           </p>
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <DashboardPreview />
+          <div className="relative w-full max-w-[711px]">
+            <Image
+              src="/images/dashboard.png"
+              alt="Dental practice management dashboard"
+              width={1200}
+              height={800}
+              priority
+              className="h-auto w-full rounded-2xl object-contain"
+            />
+          </div>
         </div>
       </div>
     </section>

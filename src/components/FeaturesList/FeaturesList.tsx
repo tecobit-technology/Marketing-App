@@ -1,9 +1,12 @@
+
 import Link from 'next/link';
+import Image from 'next/image';
 
 const features = [
   {
     emoji: '🦷',
     title: 'Patient Management',
+    image: '/images/patients.png',
     description:
       'Complete patient profiles with medical history, allergies, treatment records, documents, and X-rays — all in one place. Add family members, track referrals, and never lose a record.',
     checks: ['Smart patient search', 'Family linking', 'Document vault', 'X-ray uploads'],
@@ -13,6 +16,7 @@ const features = [
   {
     emoji: '📅',
     title: 'Appointment & Queue Management',
+    image: '/images/appointments.png',
     description:
       'Drag-and-drop scheduling, automated SMS/email reminders, waitlist management, and a live queue display for your reception — reducing no-shows by up to 40%.',
     checks: [
@@ -27,6 +31,7 @@ const features = [
   {
     emoji: '📋',
     title: 'Clinical Documentation',
+    image: '/images/documents.png',
     description:
       'Digital treatment planning, charting, and clinical notes. Create templates, track diagnoses, and send treatment plans directly to patients from within the system.',
     checks: [
@@ -52,31 +57,40 @@ export default function FeaturesList() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className={`grid grid-cols-1 items-center gap-10 lg:grid-cols-[600px_minmax(0,1fr)] lg:gap-[112px] ${feature.reverse
-                ? 'lg:grid-cols-[minmax(0,1fr)_600px] lg:[&>*:first-child]:order-2'
-                : ''
-                }`}
+              className={`grid grid-cols-1 items-center gap-10 lg:grid-cols-[600px_minmax(0,1fr)] lg:gap-[112px] ${
+                feature.reverse
+                  ? 'lg:grid-cols-[minmax(0,1fr)_600px] lg:[&>*:first-child]:order-2'
+                  : ''
+              }`}
             >
-              <div className="flex h-[380px] w-full items-center justify-center rounded-2xl border border-border-default bg-neutral-100">
-                <p className="text-center text-lg font-semibold text-[#b2bfcc]">
-                  {feature.emoji} {feature.title}
-                  <br />
-                  Screen Preview
-                </p>
+              {/* Feature screenshot */}
+              <div className="flex h-auto w-full items-center justify-center overflow-hidden rounded-2xl border border-border-default bg-neutral-100">
+                <Image
+                  src={feature.image}
+                  alt={`${feature.title} screenshot`}
+                  width={1200}
+                  height={760}
+                  className="h-full w-full object-contain"
+                />
               </div>
 
+              {/* Feature details */}
               <div>
                 <h3 className="flex items-center gap-3 text-2xl font-bold text-text-heading lg:text-[28px]">
                   <span>{feature.emoji}</span>
                   {feature.title}
                 </h3>
+
                 <p className="mt-6 max-w-[540px] text-[15px] leading-6 text-text-muted">
                   {feature.description}
                 </p>
 
                 <ul className="mt-6 flex flex-col gap-3 text-sm text-text-heading">
                   {feature.checks.map((check) => (
-                    <li key={check}><span className="text-brand-primary">✓</span> &nbsp;{check}</li>
+                    <li key={check}>
+                      <span className="text-brand-primary">✓</span>
+                      &nbsp;{check}
+                    </li>
                   ))}
                 </ul>
 
