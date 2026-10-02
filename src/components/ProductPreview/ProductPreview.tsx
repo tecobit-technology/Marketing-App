@@ -122,28 +122,28 @@ export default function ProductPreview() {
             </div>
 
             {/* Carousel viewport */}
-            <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden bg-neutral-100 p-3 sm:min-h-[400px] sm:p-6 lg:min-h-[560px] lg:p-8">
+            <div className="relative h-[300px] overflow-hidden bg-neutral-100 sm:h-[450px] lg:h-[600px]">
               {tabs.map((tab, index) => (
                 <div
                   key={tab.image}
                   aria-hidden={active !== index}
-                  className={`absolute inset-3 flex items-center justify-center transition-all duration-700 ease-in-out sm:inset-6 lg:inset-8 ${
+                  className={`absolute inset-0 flex items-center justify-center transition-all duration-[1500ms] ease-in-out ${
                     active === index
-                      ? "translate-x-0 scale-100 opacity-100"
+                      ? "translate-x-0 opacity-100"
                       : index === (active + 1) % tabs.length
-                        ? "translate-x-8 scale-[0.98] opacity-0"
-                        : "-translate-x-8 scale-[0.98] opacity-0"
+                        ? "translate-x-8 opacity-0"
+                        : "-translate-x-8 opacity-0"
                   }`}
                 >
-                  <div className="relative w-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-md">
+                  <div className="relative h-full w-full overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-md">
                     <Image
                       src={tab.image}
                       alt={tab.label}
                       width={1440}
                       height={900}
                       priority={index === 0}
-                      className={`h-auto w-full object-contain ${
-                        active === index ? "animate-product-zoom" : ""
+                      className={`h-auto w-full object-fill ${
+                        active === index ? "animate-carousel-fade" : ""
                       }`}
                     />
                   </div>

@@ -75,9 +75,9 @@ export default function Hero() {
                 </div>
 
                 {/* Browser / Window Title */}
-                <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-md bg-white px-8 py-1 text-[10px] text-neutral-400 shadow-sm">
+                <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-md bg-white px-8 py-1 text-[12px] text-neutral-700 shadow-sm">
                   <span className="h-2 w-2 rounded-full bg-neutral-300" />
-                  SaaS Dental
+                  mySaaS
                 </div>
               </div>
 

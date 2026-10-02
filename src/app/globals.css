@@ -120,7 +120,7 @@ body {
   }
 
   to {
-    transform: scale(1.08);
+    transform: scale(1.02);
   }
 }
 
@@ -148,4 +148,20 @@ body {
 
 .hero-dashboard-float {
   animation: hero-dashboard-float 4s ease-in-out infinite;
+}
+
+@keyframes carousel-fade {
+  from {
+    opacity: 0;
+    transform: translateX(25px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-carousel-fade {
+  animation: carousel-fade 1.5s ease-in-out both;
 }
