@@ -65,21 +65,41 @@ export default function Hero() {
           {/* Floating Mac Window */}
           <div className="hero-dashboard-float relative z-10 w-[110%] lg:-left-10">
             <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_30px_80px_rgba(0,0,0,0.22)]">
-              {/* Mac Window Header */}
-              <div className="flex h-10 items-center border-b border-neutral-200 bg-neutral-100 px-4">
-                {/* Traffic Lights */}
-                <div className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                  <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                  <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                </div>
 
-                {/* Browser / Window Title */}
-                <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-md bg-white px-8 py-1 text-[12px] text-neutral-700 shadow-sm">
-                  <span className="h-2 w-2 rounded-full bg-neutral-300" />
-                  mySaaS
-                </div>
+            <div className="flex h-12 items-center gap-3 border-b border-neutral-200 bg-[#f5f5f5] px-4">
+              {/* Traffic Lights */}
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="h-3 w-3 rounded-full border border-[#e0443e] bg-[#ff5f57]" />
+                <span className="h-3 w-3 rounded-full border border-[#dea123] bg-[#febc2e]" />
+                <span className="h-3 w-3 rounded-full border border-[#24a13c] bg-[#28c840]" />
               </div>
+
+              {/* Browser Navigation */}
+              <div className="flex items-center gap-3 text-neutral-500">
+                <span className="text-lg leading-none">‹</span>
+                <span className="text-lg leading-none">›</span>
+              </div>
+
+              {/* Address Bar */}
+              <div className="flex h-7 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-xs text-neutral-500">
+                <svg
+                  className="h-3 w-3 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="4" y="10" width="16" height="11" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                <span className="truncate">
+                  app.saasdental.com
+                </span>
+              </div>
+
+              {/* Browser Menu */}
+              <div className="shrink-0 text-sm text-neutral-500">•••</div>
+            </div>
 
               {/* Dashboard */}
               <div className="bg-white">
