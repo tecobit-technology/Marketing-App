@@ -104,7 +104,6 @@ const signupOtpSchema = new Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
     },
 
     // Maximum verification attempts.

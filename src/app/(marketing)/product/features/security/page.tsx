@@ -12,6 +12,7 @@ const sections = [
     description: "Multi-tenant architecture ensures each clinic's data is completely separated at the database level.",
     bullets: ['Multi-tenant architecture', 'Database-level separation', 'No cross-tenant access'],
     screenshot: 'Data Isolation screenshot',
+    browserPath: '/security/data-isolation',
     reversed: false,
   },
   {
@@ -19,6 +20,7 @@ const sections = [
     description: 'Secure login with Argon2 password hashing, session management, and forced re-authentication after timeout.',
     bullets: ['Argon2 password hashing', 'Session management', 'Timeout re-authentication'],
     screenshot: 'Authentication screenshot',
+    browserPath: '/security/authentication',
     reversed: true,
   },
   {
@@ -26,6 +28,7 @@ const sections = [
     description: 'Role-based permissions mean every staff member sees only what their role requires.',
     bullets: ['Role-based permissions', 'Least-privilege access', 'Per-module visibility'],
     screenshot: 'Access Control screenshot',
+    browserPath: '/security/access-control',
     reversed: false,
   },
 ];
@@ -65,6 +68,9 @@ export default function SecurityPage() {
         title="Patient Data That Stays Exactly Where It Should"
         description="A platform designed from the ground up to protect sensitive clinical and personal data across every clinic and every user."
         screenshotLabel="Security screenshot"
+        screenshotImage="/images/security.png"
+        browserPath='/security'
+        
       />
       <AlternatingSection sections={sections} />
       <CapabilityGrid heading="What Security Lets You Do" items={capabilities} />

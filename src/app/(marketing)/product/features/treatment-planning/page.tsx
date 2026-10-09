@@ -12,6 +12,7 @@ const sections = [
     description: 'Build multi-step plans with procedures, estimated cost, priority order, and an assigned dentist.',
     bullets: ['Multi-step plans', 'Cost estimation', 'Priority ordering'],
     screenshot: 'Treatment Plan Creation screenshot',
+    browserPath: '/treatment plan/plan-creation',
     reversed: false,
   },
   {
@@ -19,6 +20,7 @@ const sections = [
     description: 'Mark individual procedures as Planned, In Progress, Completed, or Declined.',
     bullets: ['Per-procedure status', 'Declined-treatment tracking', 'Completion reporting'],
     screenshot: 'Plan Status Tracking screenshot',
+    browserPath: '/treatment plan/plan-status',
     reversed: true,
   },
   {
@@ -26,6 +28,7 @@ const sections = [
     description: 'Explain the treatment plan to patients in-visit with a clear visual summary.',
     bullets: ['Visual plan summary', 'In-visit walkthroughs', 'Shareable cost breakdown'],
     screenshot: 'Patient Communication screenshot',
+    browserPath: '/treatment plan/patient-communication',
     reversed: false,
   },
 ];
@@ -141,6 +144,9 @@ export default function TreatmentPlanningPage() {
         title="Plan Patient Care From First Visit to Final Outcome"
         description="Create, share, and track structured treatment plans that keep the whole clinic team aligned."
         screenshotLabel="Treatment Planning screenshot"
+        screenshotImage="/images/treatment-planning.png"
+        browserPath="/treatment plan"
+      
       />
       <AlternatingSection sections={sections} />
       <CapabilityGrid heading="What Treatment Planning Lets You Do" items={capabilities} />

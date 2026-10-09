@@ -4,7 +4,9 @@ interface Section {
   title: string;
   description: string;
   bullets: string[];
-  image: string;
+  image?: string;
+  screenshot?: string;
+  browserPath?: string;
   reversed: boolean;
 }
 
@@ -58,8 +60,8 @@ export default function AlternatingSection({
                       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                     </svg>
 
-                    <span className="truncate">
-                      app.saasdental.com/appointments
+                    <span className="truncate"> 
+                      {`app.saasdental.com${section.browserPath ?? '/dashboard'}`} 
                     </span>
                   </div>
 
@@ -71,14 +73,24 @@ export default function AlternatingSection({
 
                 {/* Actual Screenshot */}
                 <div className="relative w-full bg-white">
-                  <Image
-                    src={section.image}
-                    alt={section.title}
-                    width={1200}
-                    height={800}
-                    sizes="(max-width: 1024px) 100vw, 576px"
-                    className="block h-auto w-full object-contain"
-                  />
+                  {section.image ? (
+                    <Image
+                      src={section.image}
+                      alt={section.title}
+                      width={1200}
+                      height={800}
+                      sizes="(max-width: 1024px) 100vw, 576px"
+                      className="block h-auto w-full object-contain"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-64 w-full items-center justify-center bg-secondary-100 text-sm text-neutral-400 lg:h-80"
+                      role="img"
+                      aria-label={section.screenshot ?? `${section.title} screenshot`}
+                    >
+                      {section.screenshot ?? `${section.title} screenshot`}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

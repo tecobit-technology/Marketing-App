@@ -12,6 +12,7 @@ const sections = [
     description: 'Create appointments with patient, dentist, treatment type, and notes — with conflict detection built in.',
     bullets: ['Conflict detection', 'Treatment type tagging', 'Note attachments'],
     image:"/images/appointments-booking.png",
+    browserPath: '/appointments/booking',
     reversed: false,
   },
   {
@@ -19,6 +20,7 @@ const sections = [
     description: 'Daily, weekly, and per-dentist views with drag-to-reschedule and color-coding by appointment type.',
     bullets: ['Daily & weekly views', 'Drag-to-reschedule', 'Color-coded by type'],
     image: "/images/calendar-workspace.png",
+    browserPath: '/appointments/calendar',
     reversed: true,
   },
   {
@@ -26,6 +28,7 @@ const sections = [
     description: 'Track status from Scheduled through Checked In, In Chair, Completed, and Follow-up.',
     bullets: ['Full status tracking', 'Checked-in visibility', 'Follow-up scheduling'],
     image: "/images/appointment-lifecycle.png",
+    browserPath: '/appointments/lifecycle',
     reversed: false,
   },
 ];
@@ -65,6 +68,8 @@ export default function AppointmentManagementPage() {
         title="Fill Your Schedule Without the Back-and-Forth"
         description="Book, reschedule, and track appointments across every dentist and clinic from a single calendar view."
         screenshotLabel="Appointment Management screenshot"
+        screenshotImage="/images/appointments.png"
+        browserPath='/appointments'
       />
       <AlternatingSection sections={sections} />
       <CapabilityGrid heading="What Appointment Management Lets You Do" items={capabilities} />

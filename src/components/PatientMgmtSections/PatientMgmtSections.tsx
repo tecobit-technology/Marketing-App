@@ -1,38 +1,42 @@
+import Image from "next/image";
 const sections = [
   {
-    title: 'Patient Registry',
+    title: "Patient Registry",
     description:
-      'Create and edit detailed patient profiles — contact info, demographics, and a unique MR number for every record.',
+      "Create and edit detailed patient profiles — contact info, demographics, and a unique MR number for every record.",
     bullets: [
-      'Detailed patient profiles',
-      'Demographics & contact info',
-      'Unique MR numbers',
+      "Detailed patient profiles",
+      "Demographics & contact info",
+      "Unique MR numbers",
     ],
-    screenshot: 'Patient Registry screenshot',
+    image: "/images/patient-registry.png",
+    browserPath: "/patients/patient-registry",
     reversed: false,
   },
   {
-    title: 'Medical History',
+    title: "Medical History",
     description:
-      'Allergies, medications, chronic conditions, family and surgical history — all linked per patient and visible at a glance.',
+      "Allergies, medications, chronic conditions, family and surgical history — all linked per patient and visible at a glance.",
     bullets: [
-      'Allergies & medications',
-      'Chronic condition tracking',
-      'Family & surgical history',
+      "Allergies & medications",
+      "Chronic condition tracking",
+      "Family & surgical history",
     ],
-    screenshot: 'Medical History screenshot',
+    image: "/images/medical-history.png",
+    browserPath: "/patients/medical-history",
     reversed: true,
   },
   {
-    title: 'Document Vault',
+    title: "Document Vault",
     description:
-      'Upload and store consent forms, X-rays, referral letters, and insurance documents against the patient record.',
+      "Upload and store consent forms, X-rays, referral letters, and insurance documents against the patient record.",
     bullets: [
-      'Consent form storage',
-      'X-ray & image uploads',
-      'Insurance document storage',
+      "Consent form storage",
+      "X-ray & image uploads",
+      "Insurance document storage",
     ],
-    screenshot: 'Document Vault screenshot',
+    image: "/images/document-vault.png",
+    browserPath: "/patients/document-vault",
     reversed: false,
   },
 ];
@@ -45,23 +49,77 @@ export default function PatientMgmtSections() {
           <div
             key={section.title}
             className={`flex flex-col items-center gap-12 py-16 lg:flex-row ${
-              section.reversed ? 'lg:flex-row-reverse' : ''
+              section.reversed ? "lg:flex-row-reverse" : ""
             }`}
           >
-            {/* Screenshot Placeholder */}
+            {/* Browser Screenshot */}
             <div className="flex w-full flex-1 items-center justify-center">
-              <div className="flex h-64 w-full max-w-lg items-center justify-center rounded-2xl bg-secondary-100 lg:h-80">
-                <span className="text-sm text-neutral-400">{section.screenshot}</span>
+              <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg">
+                {/* macOS Browser Header */}
+                <div className="flex h-12 items-center gap-3 border-b border-neutral-200 bg-[#f5f5f5] px-4">
+                  {/* Traffic Lights */}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="h-3 w-3 rounded-full border border-[#e0443e] bg-[#ff5f57]" />
+                    <span className="h-3 w-3 rounded-full border border-[#dea123] bg-[#febc2e]" />
+                    <span className="h-3 w-3 rounded-full border border-[#24a13c] bg-[#28c840]" />
+                  </div>
+
+                  {/* Browser Navigation */}
+                  <div className="flex items-center gap-3 text-neutral-500">
+                    <span className="text-lg leading-none">‹</span>
+                    <span className="text-lg leading-none">›</span>
+                  </div>
+
+                  {/* Address Bar */}
+                  <div className="flex h-7 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-xs text-neutral-500">
+                    <svg
+                      className="h-3 w-3 shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="4" y="10" width="16" height="11" rx="2" />
+                      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                    </svg>
+
+                    <span className="truncate">
+                      {`app.saasdental.com${section.browserPath ?? "/dashboard"}`}
+                    </span>
+                  </div>
+
+                  {/* Browser Menu */}
+                  <div className="shrink-0 text-sm text-neutral-500">•••</div>
+                </div>
+
+                {/* Actual Screenshot */}
+                <div className="relative w-full bg-white">
+                  <Image
+                    src={section.image}
+                    alt={section.title}
+                    width={1200}
+                    height={800}
+                    sizes="(max-width: 1024px) 100vw, 576px"
+                    className="block h-auto w-full object-contain"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Text Content */}
             <div className="flex flex-1 flex-col items-start gap-6">
-              <h3 className="text-2xl font-bold text-neutral-900">{section.title}</h3>
-              <p className="text-base leading-relaxed text-neutral-500">{section.description}</p>
+              <h3 className="text-2xl font-bold text-neutral-900">
+                {section.title}
+              </h3>
+              <p className="text-base leading-relaxed text-neutral-500">
+                {section.description}
+              </p>
               <ul className="space-y-2">
                 {section.bullets.map((bullet) => (
-                  <li key={bullet} className="flex items-center gap-2 text-sm text-neutral-700">
+                  <li
+                    key={bullet}
+                    className="flex items-center gap-2 text-sm text-neutral-700"
+                  >
                     <span className="text-teal-500">✓</span>
                     {bullet}
                   </li>
