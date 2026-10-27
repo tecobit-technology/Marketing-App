@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -126,5 +126,21 @@ export default function VerifyEmailPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-6">
+          <div className="w-full max-w-md text-center" role="status">
+            Loading...
+          </div>
+        </main>
+      }
+    >
+      <VerifyEmailForm />
+    </Suspense>
   );
 }
