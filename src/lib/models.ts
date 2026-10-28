@@ -895,10 +895,10 @@ type PasswordResetTokenDoc =
 /* =========================================================
    MODEL HELPER
 ========================================================= */
-
 function model<T>(
   name: string,
-  schema: Schema,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  schema: any,
 ): Model<T> {
   return (
     (mongoose.models[name] as Model<T> | undefined) ??
